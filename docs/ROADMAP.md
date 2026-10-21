@@ -1,0 +1,135 @@
+# Roadmap ejecutable
+
+Todas las tareas están pendientes. Marca una casilla únicamente al verificar su resultado. Cada fase termina con revisión del diff, evidencia de pruebas y actualización de decisiones. No se asignan fechas hasta conocer disponibilidad y experiencia del desarrollador.
+
+## Fase 0 — Base reproducible
+
+Dependencias: ninguna; conservar cualquier código preexistente.
+
+- [ ] Inspeccionar proyecto y Git; documentar diferencias frente al plan.
+- [ ] Verificar versiones compatibles de Python, Node, Django, React, Vite, Cesium y UI.
+- [ ] Crear frontend React/TypeScript y backend Django/DRF siguiendo la sección "Fase 0" de docs/STRUCTURE.md.
+- [ ] `Makefile` como punto de entrada (`up`, `test`, `lint`, `fmt`) y `compose.yaml` + override de desarrollo.
+- [ ] Añadir PostgreSQL y Redis al entorno local con configuración por entorno.
+- [ ] Crear `.env.example` sin claves; configurar `.gitignore` y exclusiones de build.
+- [ ] Configurar lint, formato, tipos, pruebas y lockfiles.
+- [ ] Configurar import-linter (backend) y reglas de imports por feature (frontend) en CI.
+- [ ] pre-commit con formato y detección de secretos.
+- [ ] Crear comandos reproducibles de arranque y verificación; documentarlos en README.
+- [ ] Crear CI básica sin secretos ni acceso a APIs externas pagadas.
+- [ ] Exponer salud mínima del backend y pantalla inicial del frontend.
+
+Aceptación: desde un checkout limpio, instalar y levantar ambos servicios siguiendo README; pipeline básico en verde; ningún secreto versionado. No se exige globo ni llamadas a USGS todavía.
+
+## Fase 1 — Fuente real y persistencia
+
+Depende de Fase 0.
+
+- [ ] Modelos Earthquake y SyncRun, migraciones y restricciones.
+- [ ] Adapter USGS con DTOs, validación, timeouts y reintentos limitados.
+- [ ] Servicio y comando de sincronización idempotente con bloqueo compartido.
+- [ ] Importación inicial limitada a 30 días y ventanas superpuestas.
+- [ ] Opción `--feed day|week|month` para sincronización escalonada.
+- [ ] Persistencia de última sincronización exitosa, errores y cobertura.
+- [ ] Pruebas con fixtures: duplicados, correcciones, nulos, datos inválidos y fallos parciales.
+
+Aceptación: importar dos veces no duplica; evento corregido se actualiza; fallo externo preserva el último estado válido. Una comprobación manual contra USGS puede documentarse sin hacerla requisito de CI.
+
+## Fase 2 — API pública acotada
+
+Depende de Fase 1.
+
+- [ ] Lista, detalle, GeoJSON y metadatos según DATA_API.md.
+- [ ] Filtros compartidos, fechas UTC, paginación y orden estable.
+- [ ] Límite de puntos con metadata de truncamiento.
+- [ ] Paginación por cursor con orden estable.
+- [ ] Caché canónica, `Cache-Control`/`ETag` con respuestas 304 y límites de consultas/tasa.
+- [ ] Contrato OpenAPI generado (drf-spectacular), commiteado, con ejemplos, y verificado en CI; tipos TS generados.
+- [ ] Pruebas de rangos inválidos, antimeridiano, límites, 404, 429, 304 y paginación estable con inserciones nuevas.
+
+Aceptación: consultas reproducibles y documentadas; ninguna consulta sin rango/límite; errores sin información interna. Datos de lista y mapa coherentes dentro de los límites declarados.
+
+## Fase 3 — Explorador visual · v0.1.0
+
+Depende de Fase 2. UI con fixtures puede adelantarse en una rama si el contrato ya está acordado.
+
+- [ ] Moodboard, wireframes y tokens (incluidos tokens de movimiento) según el proceso de UI_UX.md.
+- [ ] Tokens de diseño, shell responsive y componentes accesibles.
+- [ ] Spike de Cesium: 3D/2D, assets, geometría publicada, imágenes Blue/Black Marble y atribución.
+- [ ] Puntos con `PointPrimitiveCollection`, `requestRenderMode` y medición con 1.000/5.000 puntos.
+- [ ] Integración real con API usando TanStack Query.
+- [ ] Marcadores, lista, selección y panel de detalle sincronizados.
+- [ ] Filtros, fuente y última actualización visibles.
+- [ ] Sistema de movimiento de UI_UX.md: intro, giro en inactividad con pausa, ondas en eventos recientes, transiciones de selección y paneles; interruptor de movimiento reducido y modo de calidad baja.
+- [ ] Fallback de lista si WebGL falla; sin bucles de render ni recursos filtrados.
+- [ ] Estados de carga/error/vacío y datos obsoletos.
+- [ ] E2E del recorrido principal y revisión a 360/768/1440 px.
+
+Aceptación: un visitante explora eventos reales sin cuenta, entiende los datos y puede usar lista con teclado. Sin dependencia de mapas de demo ni IA pagada. Capturas y grabación breve de la demo para revisión.
+
+## Fase 4 — Analítica y reproducción · v0.2.0
+
+Depende de Fase 3.
+
+- [ ] Agregados deterministas y timeline con filtros compartidos.
+- [ ] Gráficas con unidades, leyendas y alternativa tabular.
+- [ ] Comparación de ventanas iguales y advertencia de cobertura.
+- [ ] Reproducción play/pausa, velocidad y cursor temporal; no cambia los datos originales.
+- [ ] URL compartible que restaura filtros/vista/selección.
+- [ ] Favoritos locales y acción para borrarlos.
+- [ ] Pruebas de consistencia entre estadísticas y conjunto completo filtrado.
+
+Aceptación: estadísticas no dependen de la página de lista ni del límite del mapa; una URL funciona en otro navegador; reproducción respetuosa de movimiento reducido.
+
+## Fase 5 — IA compartida y limitada · v0.3.0, opcional
+
+Depende de Fase 4 y aprobación de presupuesto/modelo/condiciones del proveedor. Puede omitirse y publicar sin IA.
+
+- [ ] Contrato SummaryProvider y fake; clave exclusiva configurada fuera de Git.
+- [ ] Modelos de resumen, solicitudes, presupuesto y reservas.
+- [ ] Contexto agregado, prompt versionado, validación y sanitización.
+- [ ] Comando programado con idempotencia, bloqueo y presupuesto transaccional.
+- [ ] API pública de lectura que no puede iniciar generación.
+- [ ] Panel de resumen con periodo, origen, antigüedad y etiqueta IA.
+- [ ] Pruebas de concurrencia, reserva ante timeout, reinicio y agotamiento.
+- [ ] Interruptor operativo y alertas de gasto, sin claves en logs.
+- [ ] Una prueba manual pagada únicamente cuando el propietario lo autorice.
+
+Aceptación: pruebas de AI_SECURITY.md satisfechas; múltiples visitas no elevan el número de generaciones; gasto acotado por reglas demostradas. Sin chat libre.
+
+## Fase 6 — VPS y publicación · v1.0.0
+
+Depende de Fase 4 como mínimo. Fase 5 solo si se publica con IA.
+
+- [ ] Inventariar recursos y servicios existentes sin exponer secretos.
+- [ ] Dockerfiles reproducibles, build frontend y configuración Nginx.
+- [ ] `compose.prod.yaml` según "Reglas de red": DB/Redis sin `ports:`, backend en `127.0.0.1:8100`, Redis con contraseña y `maxmemory`.
+- [ ] DNS `terramova` en Porkbun, sitio Nginx independiente, Certbot solo para el subdominio y settings de producción.
+- [ ] Verificar con `ss -tlnp` y un escaneo externo que solo 22/80/443 responden, y que Vacantia y el portafolio siguen intactos.
+- [ ] Contenedor scheduler (supercronic) con sincronización escalonada, exclusión mutua y comandos operativos.
+- [ ] Microcaché Nginx, compresión gzip/brotli y CDN opcional; medir tasa de aciertos.
+- [ ] Logs JSON con request ID y monitoreo de errores (por ejemplo, Sentry) sin datos personales.
+- [ ] Backup/restore probado y plan de rollback de código y migraciones.
+- [ ] Tests, build y `manage.py check --deploy` resueltos o excepciones justificadas.
+- [ ] Prueba de carga con objetivos y recursos documentados; ajustar límites.
+- [ ] Revisar licencias, créditos, privacidad, dependencias y seguridad.
+- [ ] Preparar despliegue revisable y obtener indicación explícita antes de modificar el VPS.
+- [ ] Ejecutar despliegue autorizado y smoke test público; monitorear errores.
+- [ ] README final con demo, capturas reales, arquitectura, límites y cómo contribuir.
+- [ ] Publicar etiqueta v1.0.0 cuando el propietario lo indique.
+
+Aceptación: demo HTTPS reproducible, acceso admin protegido, DB/Redis no públicos, datos actualizándose y rollback documentado. Objetivo inicial de frontend: interacción fluida en el equipo de referencia y carga medida; registrar resultados, no declarar rendimiento universal.
+
+## Después de v1
+
+- [ ] Decidir si hay demanda de cuentas y chat autenticado con cuotas.
+- [ ] Evaluar filtro exacto por país, importación histórica y PostGIS si lo justifican consultas reales.
+- [ ] Añadir idiomas y exportaciones limitadas según necesidad.
+- [ ] Evaluar colas/Celery únicamente con carga y operaciones observadas.
+
+## Registro de avance
+
+| Fecha | Fase/tarea | Evidencia de verificación | Pendiente o bloqueo |
+| --- | --- | --- | --- |
+| 2026-10-21 | Plan inicial | Documentación entregada; aplicación aún no implementada | Comenzar Fase 0 |
+| 2026-10-21 | Revisión 2 del plan | STRUCTURE.md; decisiones D16–D24; sistema de movimiento en UI_UX.md | Comenzar Fase 0 |
