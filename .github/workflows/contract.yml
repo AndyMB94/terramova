@@ -51,7 +51,7 @@ jobs:
         with:
           version: "0.13.4"
           working-directory: backend
-          cache-dependency-glob: backend/uv.lock
+          cache-dependency-glob: uv.lock  # relativo a working-directory
 
       - name: Regenerar el esquema OpenAPI
         working-directory: backend

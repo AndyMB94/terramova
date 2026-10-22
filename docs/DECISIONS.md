@@ -63,6 +63,7 @@ Fecha inicial: 2026-10-21. Mantener actualizado cuando se implemente o cambie el
 | D57 | Límites de tasa por IP (120/min) y global (3000/min), configurables; límite local más bajo si Redis falla | Fase 2. Valores iniciales sin medición de carga: se ajustan en la Fase 6. `API_NUM_PROXIES=1` detrás de Nginx para leer la IP real. Las rutas de salud no se limitan |
 | D58 | `SCHEMA_VERSION` en las claves de caché y ETag | Fase 2. Cualquier cambio de formato de respuesta debe incrementarlo; si no, Redis podría servir el formato anterior hasta 5 min |
 | D59 | `statement_timeout` de PostgreSQL (15 s por defecto) | Fase 2. Acota cualquier consulta, incluida una pública costosa. Configurable con `DB_STATEMENT_TIMEOUT_MS` |
+| D61 | Los tipos generados no se formatean | Fase 2, hallado en la primera ejecución de `contract.yml` (PR #5): el hook de Prettier de pre-commit corre desde la raíz y no aplica `frontend/.prettierignore`, así que reformateó `schema.d.ts` y la CI vio diferencias. Se excluye en `.pre-commit-config.yaml`; el archivo queda tal como lo produce openapi-typescript |
 | D60 | openapi-typescript 7.13 con TypeScript 6.0 | Fase 2. Declara compatibilidad con TS 5 (aviso de dependencia peer); verificado que genera tipos correctos, incluidos los nulos. Reevaluar al publicarse una versión que declare TS 6 |
 
 ## Pendientes antes de habilitar IA
