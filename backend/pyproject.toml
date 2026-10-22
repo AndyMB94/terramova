@@ -7,7 +7,9 @@ dependencies = [
     "django==5.2.18",
     "django-environ==0.14.0",
     "djangorestframework==3.18.3",
+    "httpx==0.28.1",
     "psycopg[binary]==3.3.6",
+    "pydantic==2.14.1",
     "redis==8.1.0",
 ]
 
@@ -15,6 +17,7 @@ dependencies = [
 dev = [
     "django-stubs[compatible-mypy]==6.1.2",
     "djangorestframework-stubs==3.18.1",
+    "factory-boy==3.3.3",
     "import-linter==2.15",
     "pytest==9.1.1",
     "pytest-django==4.14.0",
@@ -32,6 +35,8 @@ extend-exclude = ["**/migrations/**"]
 
 [tool.ruff.lint]
 select = ["E", "W", "F", "I", "B", "UP", "S", "SIM", "DJ", "RUF", "BLE"]
+# Django declara Meta, admin y choices como atributos de clase mutables por diseño.
+ignore = ["RUF012"]
 
 [tool.ruff.lint.per-file-ignores]
 "**/tests/**" = ["S101"]
@@ -42,12 +47,22 @@ select = ["E", "W", "F", "I", "B", "UP", "S", "SIM", "DJ", "RUF", "BLE"]
 [tool.mypy]
 python_version = "3.13"
 strict = true
-plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
+plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main", "pydantic.mypy"]
 exclude = ["^\\.venv/"]
 
 [[tool.mypy.overrides]]
 module = ["environ", "environ.*"]
 ignore_missing_imports = true
+
+# factory_boy trae tipos parciales: se aceptan sus reexportaciones y sus llamadas sin
+# anotar, solo en el código de pruebas.
+[[tool.mypy.overrides]]
+module = ["factory", "factory.*"]
+implicit_reexport = true
+
+[[tool.mypy.overrides]]
+module = ["*.tests.*"]
+disallow_untyped_calls = false
 
 [tool.django-stubs]
 django_settings_module = "config.settings.test"
@@ -56,17 +71,53 @@ django_settings_module = "config.settings.test"
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings.test"
 addopts = "--strict-markers --strict-config -ra"
-testpaths = ["core", "config"]
+testpaths = ["core", "config", "apps", "integrations"]
 markers = [
     "integration: usa PostgreSQL y Redis reales (levantados con `make up` o servicios de CI)",
 ]
 
 # --- import-linter: reglas de dependencia de docs/STRUCTURE.md ---
 [tool.importlinter]
-root_packages = ["config", "core"]
+root_packages = ["config", "core", "apps", "integrations"]
+include_external_packages = true
 
 [[tool.importlinter.contracts]]
-name = "core es transversal: no depende de config (regla 5)"
+name = "core es transversal: no depende de config, apps ni integrations (regla 5)"
 type = "forbidden"
 source_modules = ["core"]
-forbidden_modules = ["config"]
+forbidden_modules = ["config", "apps", "integrations"]
+
+[[tool.importlinter.contracts]]
+name = "integrations solo conoce los ports de las apps (regla 3)"
+type = "forbidden"
+source_modules = ["integrations"]
+forbidden_modules = ["apps"]
+ignore_imports = ["integrations.** -> apps.earthquakes.ports"]
+
+[[tool.importlinter.contracts]]
+# import-linter no admite prohibir solo django.db: se prohíbe Django entero, más estricto.
+name = "integrations nunca toca el ORM ni Django (regla 3)"
+type = "forbidden"
+source_modules = ["integrations"]
+forbidden_modules = ["django"]
+
+[[tool.importlinter.contracts]]
+name = "capas de earthquakes: comando > servicios > selectors > modelos > ports (reglas 1-2)"
+type = "layers"
+layers = [
+    "apps.earthquakes.management",
+    "apps.earthquakes.services",
+    "apps.earthquakes.selectors",
+    "apps.earthquakes.models",
+    "apps.earthquakes.ports",
+]
+
+[[tool.importlinter.contracts]]
+name = "servicios, selectors y modelos dependen de ports, no de adapters (regla 2)"
+type = "forbidden"
+source_modules = [
+    "apps.earthquakes.services",
+    "apps.earthquakes.selectors",
+    "apps.earthquakes.models",
+]
+forbidden_modules = ["integrations"]

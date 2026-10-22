@@ -252,3 +252,10 @@ Solo esto; el resto llega con su fase.
 - Frontend: la página inicial es `features/explore/ExplorePage.tsx` (marcador "en construcción", sin datos). Los alias de shadcn (`components.json`) apuntan a `@/shared/ui`, `@/shared/lib/utils` y `@/shared/hooks`. CSS en `shared/styles/index.css` + `tokens.css` (solo tokens de movimiento por ahora).
 - Reglas de imports del frontend (D33): fuera de la carpeta actual se importa con `@/`, nunca con `../`; otra feature solo vía `@/features/<nombre>`; `shared/` no importa `features/` ni `app/`; `features/` no importa `app/`. Los tests de rutas viven en `app/`.
 - import-linter (backend): por ahora `core` no puede importar `config`; los contratos de `apps/` e `integrations/` se añaden cuando existan esos paquetes.
+
+### Resultado real de la Fase 1 (diferencias con el árbol)
+
+- `apps/earthquakes/`: `apps.py`, `models.py` (`Earthquake`, `SyncRun`), `ports.py` (contrato `EarthquakeSource` y tipos `Feed`, `EarthquakeRecord`, `FeedBatch`, `FeedNotModified`, `RejectedRecord`), `services/{sync,upsert}.py`, `selectors.py` (`last_successful_sync`, `current_data_version`), `admin.py` de solo lectura, comando `sync_earthquakes` y `tests/` (con `factories.py`, que también contiene los constructores de registros y el doble `FakeSource`). `domain.py` y `api/` llegan en la Fase 2.
+- `integrations/usgs/`: `client.py`, `dto.py` (pydantic), `normalize.py`, `source.py` y `tests/fixtures/` con un recorte real documentado.
+- `core/`: `http.py` (cliente httpx con límites) y `locks.py` (`advisory_lock`). `ExternalServiceError` añadido a `core/exceptions.py`.
+- import-linter (5 contratos, verificados con violaciones de prueba): `core` no importa `config`, `apps` ni `integrations`; `integrations` solo importa `apps.earthquakes.ports` y nada de Django; capas `management > services > selectors > models > ports`; servicios, selectors y modelos no importan `integrations`. El comando es la raíz de composición (`build_sync_service()`).

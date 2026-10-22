@@ -44,6 +44,14 @@ Fecha inicial: 2026-10-21. Mantener actualizado cuando se implemente o cambie el
 | D38 | Puertos de desarrollo: backend `127.0.0.1:8100` (igual que producción), PostgreSQL `127.0.0.1:5433`, Redis `127.0.0.1:6380` | Fase 0. Siempre loopback; puertos no estándar para no chocar con instancias locales |
 | D39 | Workflow adicional `repo.yml` (pre-commit sobre todo el repo) | Fase 0. Un secreto puede aparecer fuera de `backend/` o `frontend/`; los workflows con filtro de rutas no lo verían |
 | D40 | Sin dependencias de fases futuras en Fase 0 | drf-spectacular, openapi-typescript, factory_boy, MSW, Playwright, Cesium, Motion, Recharts, Gunicorn y supercronic se añaden en su fase. Versiones vigentes consultadas el 2026-10-21 (p. ej. Cesium 1.146.0) |
+| D41 | **Retención:** se conservan los eventos de más de 30 días | Confirmado por el propietario 2026-10-22. No hay purga; la API (Fase 2) limitará las consultas a la cobertura declarada. ~120 mil filas/año |
+| D42 | **Fusiones de USGS:** si dos filas resultan ser el mismo evento, se conserva una y se borra la otra | Confirmado por el propietario 2026-10-22. El 8 % de los eventos del feed mensual tiene varios IDs (`ids`) y el preferido puede cambiar. Se guarda `source_ids` (índice GIN) y el upsert localiza el evento por cualquiera de ellos; `SyncRun.merged` cuenta las fusiones |
+| D43 | Validación de datos externos con pydantic 2 (modo estricto) y cliente HTTP httpx | Fase 1. pydantic rechaza tipos incorrectos sin código manual por campo; httpx permite streaming con límite de tamaño y transporte simulado en tests sin dependencias extra |
+| D44 | Un único `pg_advisory_lock` para los tres feeds | Fase 1. day/week/month escriben las mismas filas; con un solo bloqueo nunca se solapan. Una ejecución que encuentra el bloqueo ocupado sale con código 3 sin crear `SyncRun` |
+| D45 | Peticiones condicionales con `If-Modified-Since` | Fase 1. Verificado 2026-10-22: USGS no envía `ETag`, pero `Last-Modified` cambia cada minuto y responde 304. Solo una sincronización aplicada guarda `Last-Modified`; si falla, la siguiente descarga completa |
+| D46 | Política de rechazo | Fase 1. Un evento inválido se rechaza sin abortar el lote (estado `partial`, motivos agrupados en `rejected_reasons`). Si se rechaza todo el lote, la ejecución es `failed`. Se aceptan eventos de [ahora − 31 días, ahora + 1 h]. URLs ajenas a `https://earthquake.usgs.gov/` se descartan sin rechazar el evento. Un JSON con `NaN`/`Infinity` invalida el feed entero |
+| D47 | Se guardan todos los tipos de evento de USGS | Fase 1. El 2,4 % no son sismos (voladuras, explosiones, `ice quake`…). Se conservan con `event_type`; **pendiente para la Fase 2:** decidir si la API muestra por defecto solo `earthquake` |
+| D48 | `integrations/` no importa nada de Django | Fase 1. import-linter no admite prohibir solo `django.db`; la regla más estricta se cumple y sigue garantizando que los adapters no tocan el ORM |
 
 ## Pendientes antes de habilitar IA
 
@@ -51,7 +59,7 @@ Modelo exacto, tarifa vigente y categorías facturables, conteo/cota de tokens, 
 
 ## Pendientes de producto/datos
 
-Retención de eventos con más de 30 días (propuesta: conservarlos y limitar la API a la cobertura declarada). Formato de puntos del mapa (GeoJSON estándar o columnar) tras medir.
+Formato de puntos del mapa (GeoJSON estándar o columnar) tras medir. Tipos de evento que la API muestra por defecto (D47). Cálculo de cobertura para `/meta` a partir de `SyncRun` (Fase 2). Retención resuelta en D41.
 
 ## Pendientes antes de publicar
 

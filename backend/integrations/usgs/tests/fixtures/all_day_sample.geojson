@@ -1,0 +1,221 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {
+    "generated": 1792636054000,
+    "url": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson",
+    "title": "USGS All Earthquakes, Past Day",
+    "status": 200,
+    "api": "2.8.2",
+    "count": 5
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "mag": 2,
+        "place": "71 km WNW of Happy Valley, Alaska",
+        "time": 1792635780019,
+        "updated": 1792636042690,
+        "tz": null,
+        "url": "https://earthquake.usgs.gov/earthquakes/eventpage/aka2026uxfeuy",
+        "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/aka2026uxfeuy.geojson",
+        "felt": null,
+        "cdi": null,
+        "mmi": null,
+        "alert": null,
+        "status": "automatic",
+        "tsunami": 0,
+        "sig": 62,
+        "net": "ak",
+        "code": "a2026uxfeuy",
+        "ids": ",aka2026uxfeuy,",
+        "sources": ",ak,",
+        "types": ",origin,phase-data,",
+        "nst": 39,
+        "dmin": 0.1,
+        "rms": 0.7,
+        "gap": 128,
+        "magType": "ml",
+        "type": "earthquake",
+        "title": "M 2.0 - 71 km WNW of Happy Valley, Alaska"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -152.941,
+          60.16,
+          133.3
+        ]
+      },
+      "id": "aka2026uxfeuy"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "mag": 1.84,
+        "place": "13 km SE of Petrolia, CA",
+        "time": 1792635123030,
+        "updated": 1792635218914,
+        "tz": null,
+        "url": "https://earthquake.usgs.gov/earthquakes/eventpage/nc75453201",
+        "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/nc75453201.geojson",
+        "felt": null,
+        "cdi": null,
+        "mmi": null,
+        "alert": null,
+        "status": "automatic",
+        "tsunami": 0,
+        "sig": 52,
+        "net": "nc",
+        "code": "75453201",
+        "ids": ",nc75453201,",
+        "sources": ",nc,",
+        "types": ",nearby-cities,origin,phase-data,",
+        "nst": 13,
+        "dmin": 0.004446,
+        "rms": 0.08,
+        "gap": 128,
+        "magType": "md",
+        "type": "earthquake",
+        "title": "M 1.8 - 13 km SE of Petrolia, CA"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -124.171501159668,
+          40.2456665039062,
+          12.5200004577637
+        ]
+      },
+      "id": "nc75453201"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "mag": 1.9,
+        "place": "19 km SSW of Point Possession, Alaska",
+        "time": 1792634781602,
+        "updated": 1792634862061,
+        "tz": null,
+        "url": "https://earthquake.usgs.gov/earthquakes/eventpage/aka2026uxeqqz",
+        "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/aka2026uxeqqz.geojson",
+        "felt": null,
+        "cdi": null,
+        "mmi": null,
+        "alert": null,
+        "status": "automatic",
+        "tsunami": 0,
+        "sig": 56,
+        "net": "ak",
+        "code": "a2026uxeqqz",
+        "ids": ",aka2026uxeqqz,",
+        "sources": ",ak,",
+        "types": ",origin,phase-data,",
+        "nst": 36,
+        "dmin": 0.4,
+        "rms": 0.5,
+        "gap": 49,
+        "magType": "ml",
+        "type": "earthquake",
+        "title": "M 1.9 - 19 km SSW of Point Possession, Alaska"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -150.842,
+          60.76,
+          60.9
+        ]
+      },
+      "id": "aka2026uxeqqz"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "mag": 3.13,
+        "place": "39 km SSW of Likely, CA",
+        "time": 1792598124610,
+        "updated": 1792602452040,
+        "tz": null,
+        "url": "https://earthquake.usgs.gov/earthquakes/eventpage/nc75452891",
+        "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/nc75452891.geojson",
+        "felt": 3,
+        "cdi": 2.7,
+        "mmi": null,
+        "alert": null,
+        "status": "automatic",
+        "tsunami": 0,
+        "sig": 152,
+        "net": "nc",
+        "code": "75452891",
+        "ids": ",nc75452891,nn00926046,us6000u3uq,",
+        "sources": ",nc,nn,us,",
+        "types": ",dyfi,focal-mechanism,nearby-cities,origin,phase-data,scitech-link,",
+        "nst": 44,
+        "dmin": 0.16,
+        "rms": 0.19,
+        "gap": 94,
+        "magType": "ml",
+        "type": "earthquake",
+        "title": "M 3.1 - 39 km SSW of Likely, CA"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -120.606163024902,
+          40.8834991455078,
+          6.23000001907349
+        ]
+      },
+      "id": "nc75452891"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "mag": 1.14,
+        "place": "11 km NE of Abbotsford, Canada",
+        "time": 1792616647120,
+        "updated": 1792619929440,
+        "tz": null,
+        "url": "https://earthquake.usgs.gov/earthquakes/eventpage/uw714123632",
+        "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/uw714123632.geojson",
+        "felt": null,
+        "cdi": null,
+        "mmi": null,
+        "alert": null,
+        "status": "reviewed",
+        "tsunami": 0,
+        "sig": 20,
+        "net": "uw",
+        "code": "714123632",
+        "ids": ",uw714123632,",
+        "sources": ",uw,",
+        "types": ",origin,phase-data,",
+        "nst": 10,
+        "dmin": 0.1352,
+        "rms": 0.13,
+        "gap": 233,
+        "magType": "ml",
+        "type": "explosion",
+        "title": "M 1.1 Explosion - 11 km NE of Abbotsford, Canada"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.140666666667,
+          49.1283333333333,
+          -0.8
+        ]
+      },
+      "id": "uw714123632"
+    }
+  ],
+  "bbox": [
+    -177.6176,
+    -52.8338,
+    -0.87,
+    165.8331,
+    65.14,
+    572.281
+  ]
+}

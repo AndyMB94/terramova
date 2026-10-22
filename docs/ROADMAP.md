@@ -25,13 +25,13 @@ Aceptación: desde un checkout limpio, instalar y levantar ambos servicios sigui
 
 Depende de Fase 0.
 
-- [ ] Modelos Earthquake y SyncRun, migraciones y restricciones.
-- [ ] Adapter USGS con DTOs, validación, timeouts y reintentos limitados.
-- [ ] Servicio y comando de sincronización idempotente con bloqueo compartido.
-- [ ] Importación inicial limitada a 30 días y ventanas superpuestas.
-- [ ] Opción `--feed day|week|month` para sincronización escalonada.
-- [ ] Persistencia de última sincronización exitosa, errores y cobertura.
-- [ ] Pruebas con fixtures: duplicados, correcciones, nulos, datos inválidos y fallos parciales.
+- [x] Modelos Earthquake y SyncRun, migraciones y restricciones.
+- [x] Adapter USGS con DTOs, validación, timeouts y reintentos limitados.
+- [x] Servicio y comando de sincronización idempotente con bloqueo compartido.
+- [x] Importación inicial limitada a 30 días y ventanas superpuestas.
+- [x] Opción `--feed day|week|month` para sincronización escalonada.
+- [x] Persistencia de última sincronización exitosa, errores y cobertura. (Cada `SyncRun` guarda su ventana; el cálculo de cobertura agregada para `/meta` se hace en la Fase 2.)
+- [x] Pruebas con fixtures: duplicados, correcciones, nulos, datos inválidos y fallos parciales.
 
 Aceptación: importar dos veces no duplica; evento corregido se actualiza; fallo externo preserva el último estado válido. Una comprobación manual contra USGS puede documentarse sin hacerla requisito de CI.
 
@@ -135,3 +135,4 @@ Aceptación: demo HTTPS reproducible, acceso admin protegido, DB/Redis no públi
 | 2026-10-21 | Revisión 2 del plan | STRUCTURE.md; decisiones D16–D24; sistema de movimiento en UI_UX.md | Comenzar Fase 0 |
 | 2026-10-21 | Fase 0 (rama local `chore/phase-0-base`, sin commit) | `make check` en verde (ruff, mypy, import-linter, 9 tests pytest con PostgreSQL/Redis reales, ESLint con reglas de imports probadas con violaciones, Prettier, tsc, 2 tests Vitest, build); `make up` con servicios sanos solo en 127.0.0.1 (8100/5433/6380, confirmado con `ss`); `/health/live/` y `/health/ready/` 200, ready 503 sin detalles con Redis detenido; Redis rechaza sin contraseña; checkout limpio simulado (`make env/setup/up/migrate/check`) en verde; pre-commit y detect-secrets sin hallazgos en 74 archivos (detector probado con secretos plantados); `.env` ignorado; actionlint sin errores. Decisiones D28–D40 | CI pendiente de ejecutarse en GitHub (requiere push autorizado). Fase 1 tras revisión y commit |
 | 2026-10-21 | Fase 0 · CI en GitHub | PR #1 fusionado en `main` (merge `95992b4`). Workflows `backend`, `frontend` y `repo` en verde tanto en el PR (`064fd65`) como en el push a `main` (`95992b4`). **Fase 0 completa** | Comenzar Fase 1 |
+| 2026-10-22 | Fase 1 (rama local `feat/usgs-sync`, sin commit) | `make check` en verde: 79 tests pytest (PostgreSQL/Redis reales) que cubren duplicados, correcciones, versión antigua ignorada, cambio de ID preferido, fusiones, nulos, datos inválidos, fallo parcial, fallo de USGS que preserva el último éxito, rollback completo ante error de BD, 304, bloqueo con segunda sesión real y códigos de salida; 8 mutaciones de la lógica crítica detectadas por los tests; 5 contratos de import-linter verificados con violaciones de prueba. Prueba manual contra USGS: `month` importó 10 085 eventos en 3,7 s sin rechazos; repetir dio 304; `day` y `week` sin duplicados; 0 IDs alternativos repetidos entre filas (829 eventos con varios IDs); dos sincronizaciones simultáneas: una salió con código 3. Decisiones D41–D48 | CI pendiente de ejecutarse en GitHub. Fase 2 tras revisión y commit |
