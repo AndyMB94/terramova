@@ -130,3 +130,44 @@ name = "la API pública no llega a los servicios de escritura (regla 1)"
 type = "forbidden"
 source_modules = ["apps.earthquakes.api"]
 forbidden_modules = ["apps.earthquakes.services"]
+
+[[tool.importlinter.contracts]]
+name = "capas de analytics: api > servicios > selectors > dominio (reglas 1-2)"
+type = "layers"
+layers = [
+    "apps.analytics.api",
+    "apps.analytics.services",
+    "apps.analytics.selectors",
+    "apps.analytics.domain",
+]
+
+[[tool.importlinter.contracts]]
+# Regla 4 (D99): de earthquakes, analytics solo usa selectors, dominio y, en su API, el
+# parser público de filtros. Nunca modelos, servicios de escritura, comandos ni vistas.
+name = "analytics solo lee earthquakes por su interfaz pública (regla 4)"
+type = "forbidden"
+source_modules = ["apps.analytics"]
+forbidden_modules = [
+    "apps.earthquakes.models",
+    "apps.earthquakes.services",
+    "apps.earthquakes.management",
+    "apps.earthquakes.api.views",
+    "apps.earthquakes.api.serializers",
+    "integrations",
+]
+# selectors de earthquakes usa sus modelos por dentro: eso es suyo, no de analytics.
+allow_indirect_imports = true
+# Las pruebas preparan datos con los modelos y factories de earthquakes.
+ignore_imports = ["apps.analytics.tests.** -> apps.earthquakes.**"]
+
+[[tool.importlinter.contracts]]
+name = "solo la API de analytics usa el parser de filtros de earthquakes (regla 4)"
+type = "forbidden"
+source_modules = ["apps.analytics.services", "apps.analytics.selectors", "apps.analytics.domain"]
+forbidden_modules = ["apps.earthquakes.api"]
+
+[[tool.importlinter.contracts]]
+name = "earthquakes no conoce analytics"
+type = "forbidden"
+source_modules = ["apps.earthquakes"]
+forbidden_modules = ["apps.analytics"]

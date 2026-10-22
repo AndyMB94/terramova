@@ -291,3 +291,8 @@ Solo esto; el resto llega con su fase.
 - `features/explore/globe/`: `effects.ts` (parámetros y cálculos puros: giro, selección y fotograma de ondas), `quality.ts` (perfiles alto/bajo, elección automática y medidor de fps, puro), `motion.ts` (`GlobeMotion`: intro, giro en inactividad y vuelos con un único director enganchado a `scene.preUpdate`), `ripples.ts` (`RippleLayer`, colección aparte bajo los puntos). `points.ts` añade `HorizonCuller` compartido y el halo de selección; `geometry.ts`, el desplazamiento para no tapar el punto con la ficha.
 - En vez de los hooks `useIntroFlight`/`useIdleSpin`/`useRipples` previstos, clases sin React como en el PR 2: el estado cambia en cada fotograma y no debe provocar renderizados.
 - `shared/lib/storage.ts`: `readSession`/`writeSession` (intro y calidad medida, por pestaña). `shared/styles/index.css`: entrada de paneles.
+
+### Resultado real de la Fase 4 · PR 1 (API de analítica)
+
+- `backend/apps/analytics/`: `domain.py` (bandas, granularidad, intervalos y ventana anterior; puro), `selectors.py` (resumen en una consulta agregada, línea temporal con `Trunc` en UTC, conteo), `services.py` (comparación con control de cobertura), `api/` (`SummaryView`, `TimelineView`, serializadores que documentan el contrato) y `tests/`. Sin modelos ni migraciones.
+- `backend/core/api/public.py`: `PublicReadView`, `ErrorSerializer`, `WindowSerializer`, `ERROR_RESPONSES` y `format_datetime`, antes en `apps/earthquakes/api/` (D99).

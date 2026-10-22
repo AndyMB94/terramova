@@ -7,10 +7,8 @@ from uuid import UUID
 
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema
-from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from apps.earthquakes import selectors
 from apps.earthquakes.api.filters import EarthquakeFilterQuery, EarthquakeListQuery, parse_filters
@@ -21,9 +19,7 @@ from apps.earthquakes.api.serializers import (
     EarthquakeGeoJsonResponseSerializer,
     EarthquakeListResponseSerializer,
     EarthquakeSerializer,
-    ErrorSerializer,
     MetaResponseSerializer,
-    format_datetime,
     round_or_none,
 )
 from apps.earthquakes.domain import (
@@ -38,19 +34,10 @@ from apps.earthquakes.domain import (
     Window,
 )
 from core.api.http_cache import cached_get_response
+from core.api.public import ERROR_RESPONSES, ErrorSerializer, PublicReadView, format_datetime
 
 # Cambia cuando cambia el formato de las respuestas: invalida cachés y ETags.
 SCHEMA_VERSION = 1
-
-ERROR_RESPONSES = {
-    400: OpenApiResponse(ErrorSerializer, description="Filtros no válidos (invalid_filters)."),
-    429: OpenApiResponse(ErrorSerializer, description="Demasiadas peticiones (rate_limited)."),
-}
-
-
-class PublicReadView(APIView):
-    authentication_classes = ()
-    permission_classes = (AllowAny,)
 
 
 class EarthquakeListView(PublicReadView):

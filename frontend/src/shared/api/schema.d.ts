@@ -4,6 +4,46 @@
  */
 
 export interface paths {
+    "/api/v1/analytics/summary/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resumen estadístico del conjunto filtrado
+         * @description Conteo, magnitud máxima y distribuciones por magnitud y profundidad sobre TODOS los eventos que cumplen los filtros (no sobre una página ni sobre el límite del mapa). Incluye la comparación con la ventana anterior de igual duración solo si la cobertura la incluye entera.
+         */
+        get: operations["analytics_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/analytics/timeline/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Eventos por hora o por día
+         * @description Por hora si la ventana dura 48 h o menos; por día si es más larga. Incluye los intervalos sin eventos (count 0). Los intervalos UTC de los extremos pueden quedar cubiertos solo en parte (`is_partial`).
+         */
+        get: operations["analytics_timeline"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/earthquakes/": {
         parameters: {
             query?: never;
@@ -31,7 +71,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Detalle de un evento */
+        /**
+         * Detalle de un evento
+         * @description GET público sin cuenta: sin autenticación; los límites de tasa siguen aplicando.
+         */
         get: operations["earthquakes_retrieve"];
         put?: never;
         post?: never;
@@ -68,7 +111,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Fuente, cobertura, frescura y límites */
+        /**
+         * Fuente, cobertura, frescura y límites
+         * @description GET público sin cuenta: sin autenticación; los límites de tasa siguen aplicando.
+         */
         get: operations["meta_retrieve"];
         put?: never;
         post?: never;
@@ -82,6 +128,33 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        Comparison: {
+            available: boolean;
+            previous_window: components["schemas"]["Window"] | null;
+            previous_total: number | null;
+            /**
+             * @description Por qué no hay comparación (null si la hay).
+             *
+             *     * `outside_coverage` - outside_coverage
+             *     * `no_data` - no_data
+             */
+            reason: (components["schemas"]["ReasonEnum"] | components["schemas"]["NullEnum"]) | null;
+        };
+        DepthClass: {
+            /** @description Igual que la leyenda del mapa, p. ej. 70-150. */
+            key: string;
+            /**
+             * Format: double
+             * @description Incluido; null sin límite.
+             */
+            min_km: number | null;
+            /**
+             * Format: double
+             * @description Excluido; null sin límite.
+             */
+            max_km: number | null;
+            count: number;
+        };
         Earthquake: {
             /** Format: uuid */
             readonly id: string;
@@ -129,12 +202,33 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /**
+         * @description * `hour` - hour
+         *     * `day` - day
+         * @enum {string}
+         */
+        GranularityEnum: "hour" | "day";
         Limits: {
             max_window_days: number;
             default_window_days: number;
             default_page_size: number;
             max_page_size: number;
             max_map_points: number;
+        };
+        MagnitudeBand: {
+            /** @description Identificador estable de la banda, p. ej. 3-4. */
+            key: string;
+            /**
+             * Format: double
+             * @description Incluido; null sin límite.
+             */
+            min: number | null;
+            /**
+             * Format: double
+             * @description Excluido; null sin límite.
+             */
+            max: number | null;
+            count: number;
         };
         MapFeature: {
             type: components["schemas"]["MapFeatureTypeEnum"];
@@ -182,6 +276,8 @@ export interface components {
             default_event_type: string;
             limits: components["schemas"]["Limits"];
         };
+        /** @enum {unknown} */
+        NullEnum: null;
         PointGeometry: {
             type: components["schemas"]["PointGeometryTypeEnum"];
             /** @description [longitud, latitud] */
@@ -193,6 +289,12 @@ export interface components {
          */
         PointGeometryTypeEnum: "Point";
         /**
+         * @description * `outside_coverage` - outside_coverage
+         *     * `no_data` - no_data
+         * @enum {string}
+         */
+        ReasonEnum: "outside_coverage" | "no_data";
+        /**
          * @description * `magnitude_desc` - magnitude_desc
          * @enum {string}
          */
@@ -201,6 +303,48 @@ export interface components {
             name: string;
             /** Format: uri */
             url: string;
+        };
+        StrongestEvent: {
+            /** Format: uuid */
+            id: string;
+            /** Format: double */
+            magnitude: number;
+            place: string;
+            /** Format: date-time */
+            occurred_at: string;
+        };
+        SummaryResponse: {
+            /** @description Ventana efectiva aplicada. */
+            window: components["schemas"]["Window"] | null;
+            /** @description La ventana pedida empieza antes de la cobertura y se recortó. */
+            window_clipped: boolean;
+            total: number;
+            /** Format: double */
+            max_magnitude: number | null;
+            strongest: components["schemas"]["StrongestEvent"] | null;
+            magnitude_bands: components["schemas"]["MagnitudeBand"][];
+            /** @description Eventos sin magnitud publicada. */
+            magnitude_unknown: number;
+            depth_classes: components["schemas"]["DepthClass"][];
+            /** @description Eventos sin profundidad publicada. */
+            depth_unknown: number;
+            comparison: components["schemas"]["Comparison"];
+        };
+        TimelineBucket: {
+            /** Format: date-time */
+            start: string;
+            /** Format: date-time */
+            end: string;
+            count: number;
+            /** Format: double */
+            max_magnitude: number | null;
+            /** @description El intervalo solo está cubierto en parte por la ventana. */
+            is_partial: boolean;
+        };
+        TimelineResponse: {
+            window: components["schemas"]["Window"] | null;
+            granularity: components["schemas"]["GranularityEnum"];
+            buckets: components["schemas"]["TimelineBucket"][];
         };
         Window: {
             /** Format: date-time */
@@ -217,6 +361,106 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    analytics_summary: {
+        parameters: {
+            query?: {
+                /** @description oeste,sur,este,norte en grados. Si oeste > este cruza el antimeridiano. */
+                bbox?: string;
+                /** @description Fin (excluido), ISO 8601 con zona horaria. */
+                end?: string;
+                /** @description Tipo de evento de USGS; "all" incluye todos. */
+                event_type?: string;
+                max_depth_km?: number;
+                max_magnitude?: number;
+                min_depth_km?: number;
+                min_magnitude?: number;
+                /** @description Inicio (incluido), ISO 8601 con zona horaria. */
+                start?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SummaryResponse"];
+                };
+            };
+            /** @description Filtros no válidos (invalid_filters). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Demasiadas peticiones (rate_limited). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    analytics_timeline: {
+        parameters: {
+            query?: {
+                /** @description oeste,sur,este,norte en grados. Si oeste > este cruza el antimeridiano. */
+                bbox?: string;
+                /** @description Fin (excluido), ISO 8601 con zona horaria. */
+                end?: string;
+                /** @description Tipo de evento de USGS; "all" incluye todos. */
+                event_type?: string;
+                max_depth_km?: number;
+                max_magnitude?: number;
+                min_depth_km?: number;
+                min_magnitude?: number;
+                /** @description Inicio (incluido), ISO 8601 con zona horaria. */
+                start?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimelineResponse"];
+                };
+            };
+            /** @description Filtros no válidos (invalid_filters). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Demasiadas peticiones (rate_limited). */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     earthquakes_list: {
         parameters: {
             query?: {

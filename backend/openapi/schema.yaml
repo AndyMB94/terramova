@@ -5,6 +5,214 @@ info:
   description: API pública de solo lectura con eventos sísmicos de USGS. Fechas en
     UTC; consultas siempre acotadas por ventana, página y número de puntos.
 paths:
+  /api/v1/analytics/summary/:
+    get:
+      operationId: analytics_summary
+      description: Conteo, magnitud máxima y distribuciones por magnitud y profundidad
+        sobre TODOS los eventos que cumplen los filtros (no sobre una página ni sobre
+        el límite del mapa). Incluye la comparación con la ventana anterior de igual
+        duración solo si la cobertura la incluye entera.
+      summary: Resumen estadístico del conjunto filtrado
+      parameters:
+      - in: query
+        name: bbox
+        schema:
+          type: string
+          maxLength: 100
+          minLength: 1
+        description: oeste,sur,este,norte en grados. Si oeste > este cruza el antimeridiano.
+      - in: query
+        name: end
+        schema:
+          type: string
+          format: date-time
+        description: Fin (excluido), ISO 8601 con zona horaria.
+      - in: query
+        name: event_type
+        schema:
+          type: string
+          default: earthquake
+          maxLength: 32
+          minLength: 1
+        description: Tipo de evento de USGS; "all" incluye todos.
+      - in: query
+        name: max_depth_km
+        schema:
+          type: number
+          format: double
+          maximum: 1000
+          minimum: -100
+      - in: query
+        name: max_magnitude
+        schema:
+          type: number
+          format: double
+          maximum: 12
+          minimum: -5
+      - in: query
+        name: min_depth_km
+        schema:
+          type: number
+          format: double
+          maximum: 1000
+          minimum: -100
+      - in: query
+        name: min_magnitude
+        schema:
+          type: number
+          format: double
+          maximum: 12
+          minimum: -5
+      - in: query
+        name: start
+        schema:
+          type: string
+          format: date-time
+        description: Inicio (incluido), ISO 8601 con zona horaria.
+      tags:
+      - analytics
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SummaryResponse'
+              examples:
+                VentanaSinComparaciónPorCobertura:
+                  value:
+                    window:
+                      start: '2026-09-22T03:58:52Z'
+                      end: '2026-10-22T03:58:52Z'
+                    window_clipped: false
+                    total: 9842
+                    max_magnitude: 7.0
+                    strongest:
+                      id: bf38b622-8854-4aa6-8282-93cefbf8b6ba
+                      magnitude: 7.0
+                      place: 183 km ENE of Nagqu, China
+                      occurred_at: '2026-10-22T14:33:39Z'
+                    magnitude_bands:
+                    - key: 4-5
+                      min: 4
+                      max: 5
+                      count: 512
+                    magnitude_unknown: 3
+                    depth_classes:
+                    - key: 0-35
+                      min_km: null
+                      max_km: 35
+                      count: 8120
+                    depth_unknown: 0
+                    comparison:
+                      available: false
+                      previous_window:
+                        start: '2026-08-23T03:58:52Z'
+                        end: '2026-09-22T03:58:52Z'
+                      previous_total: null
+                      reason: outside_coverage
+                  summary: Ventana sin comparación por cobertura
+                  description: GET /api/v1/analytics/summary/ con los últimos 30 días
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Filtros no válidos (invalid_filters).
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Demasiadas peticiones (rate_limited).
+  /api/v1/analytics/timeline/:
+    get:
+      operationId: analytics_timeline
+      description: Por hora si la ventana dura 48 h o menos; por día si es más larga.
+        Incluye los intervalos sin eventos (count 0). Los intervalos UTC de los extremos
+        pueden quedar cubiertos solo en parte (`is_partial`).
+      summary: Eventos por hora o por día
+      parameters:
+      - in: query
+        name: bbox
+        schema:
+          type: string
+          maxLength: 100
+          minLength: 1
+        description: oeste,sur,este,norte en grados. Si oeste > este cruza el antimeridiano.
+      - in: query
+        name: end
+        schema:
+          type: string
+          format: date-time
+        description: Fin (excluido), ISO 8601 con zona horaria.
+      - in: query
+        name: event_type
+        schema:
+          type: string
+          default: earthquake
+          maxLength: 32
+          minLength: 1
+        description: Tipo de evento de USGS; "all" incluye todos.
+      - in: query
+        name: max_depth_km
+        schema:
+          type: number
+          format: double
+          maximum: 1000
+          minimum: -100
+      - in: query
+        name: max_magnitude
+        schema:
+          type: number
+          format: double
+          maximum: 12
+          minimum: -5
+      - in: query
+        name: min_depth_km
+        schema:
+          type: number
+          format: double
+          maximum: 1000
+          minimum: -100
+      - in: query
+        name: min_magnitude
+        schema:
+          type: number
+          format: double
+          maximum: 12
+          minimum: -5
+      - in: query
+        name: start
+        schema:
+          type: string
+          format: date-time
+        description: Inicio (incluido), ISO 8601 con zona horaria.
+      tags:
+      - analytics
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimelineResponse'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Filtros no válidos (invalid_filters).
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Demasiadas peticiones (rate_limited).
   /api/v1/earthquakes/:
     get:
       operationId: earthquakes_list
@@ -152,6 +360,8 @@ paths:
   /api/v1/earthquakes/{event_id}/:
     get:
       operationId: earthquakes_retrieve
+      description: 'GET público sin cuenta: sin autenticación; los límites de tasa
+        siguen aplicando.'
       summary: Detalle de un evento
       parameters:
       - in: path
@@ -271,6 +481,8 @@ paths:
   /api/v1/meta/:
     get:
       operationId: meta_retrieve
+      description: 'GET público sin cuenta: sin autenticación; los límites de tasa
+        siguen aplicando.'
       summary: Fuente, cobertura, frescura y límites
       tags:
       - meta
@@ -291,6 +503,56 @@ paths:
           description: Demasiadas peticiones (rate_limited).
 components:
   schemas:
+    Comparison:
+      type: object
+      properties:
+        available:
+          type: boolean
+        previous_window:
+          allOf:
+          - $ref: '#/components/schemas/Window'
+          nullable: true
+        previous_total:
+          type: integer
+          nullable: true
+        reason:
+          nullable: true
+          description: |-
+            Por qué no hay comparación (null si la hay).
+
+            * `outside_coverage` - outside_coverage
+            * `no_data` - no_data
+          oneOf:
+          - $ref: '#/components/schemas/ReasonEnum'
+          - $ref: '#/components/schemas/NullEnum'
+      required:
+      - available
+      - previous_total
+      - previous_window
+      - reason
+    DepthClass:
+      type: object
+      properties:
+        key:
+          type: string
+          description: Igual que la leyenda del mapa, p. ej. 70-150.
+        min_km:
+          type: number
+          format: double
+          nullable: true
+          description: Incluido; null sin límite.
+        max_km:
+          type: number
+          format: double
+          nullable: true
+          description: Excluido; null sin límite.
+        count:
+          type: integer
+      required:
+      - count
+      - key
+      - max_km
+      - min_km
     Earthquake:
       type: object
       properties:
@@ -406,6 +668,14 @@ components:
       required:
       - code
       - message
+    GranularityEnum:
+      enum:
+      - hour
+      - day
+      type: string
+      description: |-
+        * `hour` - hour
+        * `day` - day
     Limits:
       type: object
       properties:
@@ -425,6 +695,29 @@ components:
       - max_map_points
       - max_page_size
       - max_window_days
+    MagnitudeBand:
+      type: object
+      properties:
+        key:
+          type: string
+          description: Identificador estable de la banda, p. ej. 3-4.
+        min:
+          type: number
+          format: double
+          nullable: true
+          description: Incluido; null sin límite.
+        max:
+          type: number
+          format: double
+          nullable: true
+          description: Excluido; null sin límite.
+        count:
+          type: integer
+      required:
+      - count
+      - key
+      - max
+      - min
     MapFeature:
       type: object
       properties:
@@ -530,6 +823,9 @@ components:
       - limits
       - source
       - stale_after_seconds
+    NullEnum:
+      enum:
+      - null
     PointGeometry:
       type: object
       properties:
@@ -551,6 +847,14 @@ components:
       - Point
       type: string
       description: '* `Point` - Point'
+    ReasonEnum:
+      enum:
+      - outside_coverage
+      - no_data
+      type: string
+      description: |-
+        * `outside_coverage` - outside_coverage
+        * `no_data` - no_data
     SelectionEnum:
       enum:
       - magnitude_desc
@@ -567,6 +871,114 @@ components:
       required:
       - name
       - url
+    StrongestEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        magnitude:
+          type: number
+          format: double
+        place:
+          type: string
+        occurred_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - magnitude
+      - occurred_at
+      - place
+    SummaryResponse:
+      type: object
+      properties:
+        window:
+          allOf:
+          - $ref: '#/components/schemas/Window'
+          nullable: true
+          description: Ventana efectiva aplicada.
+        window_clipped:
+          type: boolean
+          description: La ventana pedida empieza antes de la cobertura y se recortó.
+        total:
+          type: integer
+        max_magnitude:
+          type: number
+          format: double
+          nullable: true
+        strongest:
+          allOf:
+          - $ref: '#/components/schemas/StrongestEvent'
+          nullable: true
+        magnitude_bands:
+          type: array
+          items:
+            $ref: '#/components/schemas/MagnitudeBand'
+        magnitude_unknown:
+          type: integer
+          description: Eventos sin magnitud publicada.
+        depth_classes:
+          type: array
+          items:
+            $ref: '#/components/schemas/DepthClass'
+        depth_unknown:
+          type: integer
+          description: Eventos sin profundidad publicada.
+        comparison:
+          $ref: '#/components/schemas/Comparison'
+      required:
+      - comparison
+      - depth_classes
+      - depth_unknown
+      - magnitude_bands
+      - magnitude_unknown
+      - max_magnitude
+      - strongest
+      - total
+      - window
+      - window_clipped
+    TimelineBucket:
+      type: object
+      properties:
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        count:
+          type: integer
+        max_magnitude:
+          type: number
+          format: double
+          nullable: true
+        is_partial:
+          type: boolean
+          description: El intervalo solo está cubierto en parte por la ventana.
+      required:
+      - count
+      - end
+      - is_partial
+      - max_magnitude
+      - start
+    TimelineResponse:
+      type: object
+      properties:
+        window:
+          allOf:
+          - $ref: '#/components/schemas/Window'
+          nullable: true
+        granularity:
+          $ref: '#/components/schemas/GranularityEnum'
+        buckets:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimelineBucket'
+      required:
+      - buckets
+      - granularity
+      - window
     Window:
       type: object
       properties:

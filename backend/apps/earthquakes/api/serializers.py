@@ -1,11 +1,11 @@
 """Formato de salida. Las clases de respuesta también documentan el contrato OpenAPI."""
 
-from datetime import datetime
 from typing import Any
 
 from rest_framework import serializers
 
 from apps.earthquakes.models import Earthquake
+from core.api.public import WindowSerializer
 
 # USGS publica algunas coordenadas con ruido de float32 (-121.229667663574). En la base
 # se guardan tal cual; en la API se redondea a una precisión con sentido físico.
@@ -16,11 +16,6 @@ MAGNITUDE_DECIMALS = 2
 
 def round_or_none(value: float | None, decimals: int) -> float | None:
     return None if value is None else round(value, decimals)
-
-
-def format_datetime(value: datetime) -> str:
-    """Mismo formato que DRF en toda la API (UTC con sufijo Z)."""
-    return str(serializers.DateTimeField().to_representation(value))
 
 
 class RoundedFloatField(serializers.FloatField):
@@ -56,11 +51,6 @@ class EarthquakeSerializer(serializers.ModelSerializer[Earthquake]):
             "event_type",
             "source_url",
         ]
-
-
-class WindowSerializer(serializers.Serializer[Any]):
-    start = serializers.DateTimeField()
-    end = serializers.DateTimeField()
 
 
 class EarthquakeListResponseSerializer(serializers.Serializer[Any]):
@@ -131,12 +121,3 @@ class MetaResponseSerializer(serializers.Serializer[Any]):
     data_version = serializers.IntegerField()
     default_event_type = serializers.CharField()
     limits = LimitsSerializer()
-
-
-class ErrorSerializer(serializers.Serializer[Any]):
-    code = serializers.CharField()
-    message = serializers.CharField()
-    # Igual que arriba: no choca con Serializer.errors en tiempo de ejecución.
-    errors = serializers.DictField(  # type: ignore[assignment]
-        required=False, help_text="Detalle por campo (solo 400)."
-    )
