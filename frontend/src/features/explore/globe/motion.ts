@@ -36,6 +36,8 @@ export class GlobeMotion {
   spinPaused = false;
   /** Con un evento seleccionado no se gira: el punto se iría de la vista. */
   hasSelection = false;
+  /** Durante la reproducción temporal la cámara no se mueve sola. */
+  playbackActive = false;
 
   private readonly widget: CesiumWidget;
   private readonly ripples: RippleLayer;
@@ -176,6 +178,7 @@ export class GlobeMotion {
       !this.reducedMotion &&
       !this.spinPaused &&
       !this.hasSelection &&
+      !this.playbackActive &&
       !this.flying &&
       !document.hidden &&
       this.widget.scene.mode === SceneMode.SCENE3D &&

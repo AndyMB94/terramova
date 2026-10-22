@@ -27,12 +27,19 @@ export interface RippleCandidate {
   occurredAtMs: number;
 }
 
-/** Eventos de la última hora (hora real), los de mayor magnitud primero, como mucho 20. */
-export function selectRipples<T extends RippleCandidate>(points: readonly T[], nowMs: number): T[] {
+/**
+ * Eventos recientes respecto a `nowMs` (la última hora real, o el cursor de la
+ * reproducción con su propio margen), los de mayor magnitud primero, como mucho 20.
+ */
+export function selectRipples<T extends RippleCandidate>(
+  points: readonly T[],
+  nowMs: number,
+  windowMs: number = RECENT_WINDOW_MS,
+): T[] {
   return points
     .filter((point) => {
       const age = nowMs - point.occurredAtMs;
-      return age >= 0 && age <= RECENT_WINDOW_MS;
+      return age >= 0 && age <= windowMs;
     })
     .sort((a, b) => (b.magnitude ?? -Infinity) - (a.magnitude ?? -Infinity))
     .slice(0, MAX_RIPPLES);

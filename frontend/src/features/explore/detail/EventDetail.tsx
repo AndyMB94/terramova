@@ -2,6 +2,7 @@ import { ExternalLink, X } from "lucide-react";
 import { type ReactNode, useEffect, useId } from "react";
 
 import type { Earthquake } from "@/features/explore/api/queries";
+import { FavoriteButton } from "@/features/favorites";
 import { userMessage } from "@/shared/api/errors";
 import {
   formatCoordinates,
@@ -117,6 +118,15 @@ function DetailContent({
         La magnitud mide la energía liberada en el foco; no indica la intensidad sentida ni los
         daños.
       </p>
+
+      <FavoriteButton
+        event={{
+          id: event.id,
+          place: event.place ?? "",
+          magnitude: event.magnitude,
+          occurred_at: event.occurred_at,
+        }}
+      />
 
       {event.source_url ? (
         <a

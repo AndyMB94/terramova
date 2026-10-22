@@ -23,9 +23,9 @@ export function useExploreFilters() {
 
   const reset = useCallback(() => {
     setSearchParams((current) => {
-      // Restablecer conserva el evento seleccionado: es una vista, no un filtro.
-      const event = parseFilters(current).event;
-      return serializeFilters({ ...DEFAULT_FILTERS, event });
+      // Restablecer conserva el evento seleccionado y la vista del mapa: no son filtros.
+      const { event, view } = parseFilters(current);
+      return serializeFilters({ ...DEFAULT_FILTERS, event, view });
     });
   }, [setSearchParams]);
 

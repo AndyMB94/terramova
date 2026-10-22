@@ -9,6 +9,9 @@ export type Period = (typeof PERIODS)[number];
 export const ORDERS = ["magnitude", "recent"] as const;
 export type Order = (typeof ORDERS)[number];
 
+export const MAP_VIEWS = ["3d", "2d"] as const;
+export type MapView = (typeof MAP_VIEWS)[number];
+
 export const MAGNITUDE_RANGE = { min: -5, max: 12 } as const;
 export const DEPTH_RANGE = { min: -100, max: 1000 } as const;
 
@@ -32,6 +35,8 @@ const rawSchema = z.object({
   order: z.enum(ORDERS).catch("magnitude"),
   bbox: z.string().refine(isValidBbox).optional().catch(undefined),
   event: z.uuid().optional().catch(undefined),
+  // Vista del mapa: parte del enlace compartible (D107), no un filtro de datos.
+  view: z.enum(MAP_VIEWS).catch("3d"),
 });
 
 export const exploreFiltersSchema = rawSchema.transform((filters) => ({

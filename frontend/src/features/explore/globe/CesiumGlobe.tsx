@@ -8,7 +8,7 @@ import {
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
 } from "cesium";
-import { Minus, Pause, Play, Plus } from "lucide-react";
+import { History, Minus, Pause, Play, Plus } from "lucide-react";
 import { type KeyboardEvent, useEffect, useId, useRef, useState } from "react";
 
 import type { GlobeApiRef } from "@/features/explore/globe/controller";
@@ -27,6 +27,7 @@ import {
 } from "@/features/explore/globe/quality";
 import { RippleLayer } from "@/features/explore/globe/ripples";
 import { addBorders, createGlobe, HOME } from "@/features/explore/globe/viewer";
+import type { MapView } from "@/features/explore/filters/schema";
 import { readPreference, readSession, writePreference, writeSession } from "@/shared/lib/storage";
 import { cn } from "@/shared/lib/utils";
 
@@ -39,6 +40,12 @@ export interface CesiumGlobeProps {
   reducedMotion: boolean;
   /** Píxeles tapados a la derecha (ficha flotante): los vuelos centran en la zona libre. */
   rightInsetPx: number;
+  /** Vista del mapa; vive en la URL para que el enlace la restaure (D107). */
+  mode: MapView;
+  onModeChange: (mode: MapView) => void;
+  /** Reproducción temporal: el cursor decide qué ondas marcan lo recién aparecido. */
+  playback: { cursorMs: number; recentMs: number } | null;
+  onTogglePlayback: () => void;
   apiRef: GlobeApiRef;
   onUnavailable: () => void;
 }
@@ -67,7 +74,7 @@ function initialAutoLevel(): QualityLevel {
 }
 
 export default function CesiumGlobe(props: CesiumGlobeProps) {
-  const { points, selectedId, focus, reducedMotion, apiRef } = props;
+  const { points, selectedId, focus, reducedMotion, apiRef, mode, playback } = props;
   const containerRef = useRef<HTMLDivElement>(null);
   const creditsRef = useRef<HTMLSpanElement>(null);
   const widgetRef = useRef<CesiumWidget | null>(null);
@@ -75,7 +82,6 @@ export default function CesiumGlobe(props: CesiumGlobeProps) {
   const ripplesRef = useRef<RippleLayer | null>(null);
   const motionRef = useRef<GlobeMotion | null>(null);
   const qualityId = useId();
-  const [mode, setMode] = useState<"3d" | "2d">("3d");
   const [qualityChoice, setQualityChoice] = useState<QualityChoice>(() =>
     parseQualityChoice(readPreference(QUALITY_KEY)),
   );
@@ -111,8 +117,13 @@ export default function CesiumGlobe(props: CesiumGlobeProps) {
   const initial = useRef<{
     reducedMotion: boolean;
     selectedId: string | undefined;
+    mode: MapView;
     playIntro: boolean | null;
-  }>({ reducedMotion, selectedId, playIntro: null });
+  }>({ reducedMotion, selectedId, mode, playIntro: null });
+  // Modo que tiene la escena; un visor recién creado está en 3D y se lleva al de la URL
+  // sin transición (un enlace en 2D no debe abrir con un morph de 1 s).
+  const appliedMode = useRef<MapView>("3d");
+  const freshViewer = useRef(false);
   // Vuelo pendiente al evento del enlace; se activa en cada creación del visor.
   const deepLinkPending = useRef(false);
 
@@ -147,11 +158,16 @@ export default function CesiumGlobe(props: CesiumGlobeProps) {
     // Una vez por pestaña; si el enlace trae un evento, el vuelo a ese evento la sustituye.
     // Se decide en el primer montaje y se guarda: React en modo estricto monta dos veces.
     if (initial.current.playIntro === null) {
-      initial.current.playIntro = readSession(INTRO_KEY) !== "done" && !initial.current.selectedId;
+      initial.current.playIntro =
+        readSession(INTRO_KEY) !== "done" &&
+        !initial.current.selectedId &&
+        initial.current.mode === "3d";
       writeSession(INTRO_KEY, "done");
     }
     motion.playIntro(HOME, initial.current.playIntro);
     deepLinkPending.current = initial.current.selectedId !== undefined;
+    appliedMode.current = "3d";
+    freshViewer.current = true;
 
     const borders = new AbortController();
     addBorders(widget, borders.signal).catch((error: unknown) => {
@@ -206,8 +222,20 @@ export default function CesiumGlobe(props: CesiumGlobeProps) {
 
   useEffect(() => {
     layerRef.current?.update(points);
+  }, [points]);
+
+  // Ondas: en la reproducción, lo aparecido en el último segundo (sin ondas con movimiento
+  // reducido); fuera de ella, la última hora real, recalculada cada minuto.
+  const playbackCursor = playback?.cursorMs ?? null;
+  const playbackRecent = reducedMotion ? 0 : (playback?.recentMs ?? 0);
+  useEffect(() => {
     const ripples = ripplesRef.current;
+    if (motionRef.current) motionRef.current.playbackActive = playbackCursor !== null;
     if (!ripples) return;
+    if (playbackCursor !== null) {
+      ripples.update(points, playbackCursor, playbackRecent);
+      return;
+    }
     ripples.update(points, Date.now());
     // Las ondas son de la última hora: se recalculan cada minuto aunque no lleguen datos.
     const interval = window.setInterval(
@@ -215,7 +243,7 @@ export default function CesiumGlobe(props: CesiumGlobeProps) {
       RIPPLE_REFRESH_MS,
     );
     return () => window.clearInterval(interval);
-  }, [points]);
+  }, [points, playbackCursor, playbackRecent]);
 
   useEffect(() => {
     layerRef.current?.select(selectedId ?? null);
@@ -287,31 +315,20 @@ export default function CesiumGlobe(props: CesiumGlobeProps) {
     widget.scene.requestRender();
   };
 
-  const changeMode = (next: "3d" | "2d") => {
+  // Aplica la vista de la URL: al pulsar 3D/2D, al abrir un enlace o al volver atrás.
+  useEffect(() => {
     const widget = widgetRef.current;
-    if (!widget || next === mode) return;
+    if (!widget || appliedMode.current === mode) return;
+    const instant = freshViewer.current || reducedMotion;
+    freshViewer.current = false;
+    appliedMode.current = mode;
+    morph(widget, mode, instant ? 0 : MORPH_SECONDS);
+  }, [mode, reducedMotion]);
+
+  const changeMode = (next: MapView) => {
+    if (next === mode) return;
     motionRef.current?.takeControl();
-    const { scene, camera } = widget;
-    // Cesium reinicia la cámara al cambiar de modo: se guarda el centro de la vista y se
-    // restaura al terminar la transición para no perder la zona que se estaba mirando.
-    const canvas = scene.canvas;
-    const center = camera.pickEllipsoid(
-      new Cartesian2(canvas.clientWidth / 2, canvas.clientHeight / 2),
-    );
-    const target = center ? Cartographic.fromCartesian(center) : undefined;
-    const height = Math.min(camera.positionCartographic.height, 20_000_000);
-    const restore = scene.morphComplete.addEventListener(() => {
-      restore();
-      if (!target) return;
-      camera.setView({
-        destination: Cartesian3.fromRadians(target.longitude, target.latitude, height),
-      });
-      scene.requestRender();
-    });
-    const duration = reducedMotion ? 0 : MORPH_SECONDS;
-    if (next === "2d") scene.morphTo2D(duration);
-    else scene.morphTo3D(duration);
-    setMode(next);
+    props.onModeChange(next);
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -345,6 +362,8 @@ export default function CesiumGlobe(props: CesiumGlobeProps) {
         aria-roledescription="globo"
         aria-label="Globo con los eventos del periodo. Arrastra o usa las flechas para girar y + o − para acercar. La lista contiene los mismos eventos."
         data-quality={quality}
+        data-points={points.length}
+        data-playback={playback ? "on" : "off"}
         onKeyDown={onKeyDown}
         className="absolute inset-0 outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
       />
@@ -373,8 +392,18 @@ export default function CesiumGlobe(props: CesiumGlobeProps) {
               </button>
             ))}
           </div>
+          <button
+            type="button"
+            aria-pressed={playback !== null}
+            onClick={props.onTogglePlayback}
+            className="flex h-11 cursor-pointer items-center gap-2 rounded-[10px] border border-border bg-surface/95 px-3 text-[13px] lg:h-[46px]"
+          >
+            <History aria-hidden="true" className="size-4" />
+            <span className="max-sm:sr-only">Reproducir periodo</span>
+          </button>
           {/* WCAG 2.2.2: el giro automático siempre se puede pausar. */}
-          {!reducedMotion && mode === "3d" ? (
+          {/* Durante la reproducción no hay giro: el botón volvería a aparecer al cerrarla. */}
+          {!reducedMotion && mode === "3d" && !playback ? (
             <button
               type="button"
               aria-pressed={spinPaused}
@@ -467,4 +496,28 @@ function flyToPoint(
           fovyRadians: fovy,
         });
   motion.flyTo({ longitude, latitude: point.latitude, height }, SELECTION_FLIGHT_SECONDS);
+}
+
+/**
+ * Cambia de modo conservando la zona que se miraba: Cesium reinicia la cámara al
+ * cambiar de modo, así que se guarda el centro de la vista y se restaura al terminar.
+ */
+function morph(widget: CesiumWidget, next: MapView, duration: number): void {
+  const { scene, camera } = widget;
+  const canvas = scene.canvas;
+  const center = camera.pickEllipsoid(
+    new Cartesian2(canvas.clientWidth / 2, canvas.clientHeight / 2),
+  );
+  const target = center ? Cartographic.fromCartesian(center) : undefined;
+  const height = Math.min(camera.positionCartographic.height, 20_000_000);
+  const restore = scene.morphComplete.addEventListener(() => {
+    restore();
+    if (!target) return;
+    camera.setView({
+      destination: Cartesian3.fromRadians(target.longitude, target.latitude, height),
+    });
+    scene.requestRender();
+  });
+  if (next === "2d") scene.morphTo2D(duration);
+  else scene.morphTo3D(duration);
 }

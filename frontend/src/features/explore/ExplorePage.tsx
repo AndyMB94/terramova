@@ -13,11 +13,21 @@ import { activeChips } from "@/features/explore/filters/chips";
 import { FilterPanel } from "@/features/explore/filters/FilterPanel";
 import { useExploreFilters } from "@/features/explore/filters/useExploreFilters";
 import { EventList } from "@/features/explore/list/EventList";
+import { ListTabs } from "@/features/explore/list/ListTabs";
+import { type ListTab, panelId, tabId } from "@/features/explore/list/tabs";
 import { useGlobeApiRef } from "@/features/explore/globe/controller";
 import type { GlobePoint } from "@/features/explore/globe/points";
 import { supportsWebGL } from "@/features/explore/globe/webgl";
 import { MapArea } from "@/features/explore/map/MapArea";
 import { StatusBar } from "@/features/explore/status/StatusBar";
+import { FavoritesList, useFavorites } from "@/features/favorites";
+import {
+  PlaybackBar,
+  type PlaybackWindow,
+  recentSpanMs,
+  usePlayback,
+  visibleUntil,
+} from "@/features/playback";
 import { usePreferences } from "@/shared/hooks/preferences-context";
 import { useMediaQuery } from "@/shared/hooks/useMediaQuery";
 import { formatDateRange } from "@/shared/lib/format";
@@ -53,10 +63,25 @@ export function ExplorePage() {
       })),
     [map.data],
   );
+  const pointIds = useMemo(() => new Set(points.map((point) => point.id)), [points]);
+  // Reproducción sobre la ventana del mapa: solo cambia qué puntos se dibujan (D108).
+  const mapWindow = map.data?.metadata.window;
+  const playbackRange = useMemo<PlaybackWindow | null>(
+    () =>
+      mapWindow ? { startMs: Date.parse(mapWindow.start), endMs: Date.parse(mapWindow.end) } : null,
+    [mapWindow],
+  );
+  const { favorites } = useFavorites();
+  const [tab, setTab] = useState<ListTab>("events");
   const globeApi = useGlobeApiRef();
   const [mapAvailable, setMapAvailable] = useState(supportsWebGL);
   const [focus, setFocus] = useState<{ id: string; nonce: number } | null>(null);
   const { reducedMotion } = usePreferences();
+  const playback = usePlayback(playbackRange, reducedMotion);
+  const shownPoints = useMemo(
+    () => (playback.cursorMs === null ? points : visibleUntil(points, playback.cursorMs)),
+    [points, playback.cursorMs],
+  );
 
   const selected = useEarthquake(filters.event);
 
@@ -73,7 +98,13 @@ export function ExplorePage() {
     const id = filters.event;
     update({ event: undefined });
     // Devuelve el foco a la fila del evento para no perder la posición con teclado.
-    if (id) requestAnimationFrame(() => document.getElementById(`event-${id}`)?.focus());
+    if (id) {
+      requestAnimationFrame(() =>
+        (
+          document.getElementById(`event-${id}`) ?? document.getElementById(`favorite-${id}`)
+        )?.focus(),
+      );
+    }
   }, [filters.event, update]);
 
   const chips = activeChips(filters);
@@ -153,39 +184,87 @@ export function ExplorePage() {
 
         <section
           aria-label="Mapa"
-          className="relative h-[312px] shrink-0 sm:h-[452px] lg:h-auto lg:min-w-0 lg:flex-1"
+          className={cn(
+            "relative flex shrink-0 flex-col lg:h-auto lg:min-w-0 lg:flex-1",
+            !playback.active && "h-[312px] sm:h-[452px]",
+          )}
         >
-          <MapArea
-            points={points}
-            selectedId={filters.event}
-            focus={focus}
-            onSelect={selectFromGlobe}
-            reducedMotion={reducedMotion}
-            rightInsetPx={wide && filters.event ? DETAIL_INSET_PX : 0}
-            apiRef={globeApi}
-            available={mapAvailable}
-            onUnavailable={() => setMapAvailable(false)}
+          <div
+            className={cn(
+              "relative min-h-0 lg:flex-1",
+              playback.active ? "h-[312px] sm:h-[452px] lg:h-auto" : "flex-1",
+            )}
           >
-            {wide ? detail : null}
-          </MapArea>
+            <MapArea
+              points={shownPoints}
+              selectedId={filters.event}
+              focus={focus}
+              onSelect={selectFromGlobe}
+              reducedMotion={reducedMotion}
+              rightInsetPx={wide && filters.event ? DETAIL_INSET_PX : 0}
+              mode={filters.view}
+              onModeChange={(view) => update({ view })}
+              playback={
+                playback.cursorMs !== null && playbackRange
+                  ? { cursorMs: playback.cursorMs, recentMs: recentSpanMs(playbackRange) }
+                  : null
+              }
+              onTogglePlayback={playback.active ? playback.close : playback.open}
+              apiRef={globeApi}
+              available={mapAvailable}
+              onUnavailable={() => setMapAvailable(false)}
+            >
+              {wide ? detail : null}
+            </MapArea>
+          </div>
+          {playback.cursorMs !== null && playbackRange ? (
+            <PlaybackBar
+              range={playbackRange}
+              cursorMs={playback.cursorMs}
+              playing={playback.playing}
+              speed={playback.speed}
+              visibleCount={shownPoints.length}
+              truncated={map.data?.metadata.truncated ?? false}
+              onTogglePlaying={playback.togglePlaying}
+              onSeek={playback.seek}
+              onSpeed={playback.setSpeed}
+              onClose={playback.close}
+            />
+          ) : null}
         </section>
 
         <div className="flex min-h-0 flex-col border-border-subtle bg-panel lg:w-[392px] lg:shrink-0 lg:border-l">
           {detail && !wide ? <div className="p-3">{detail}</div> : null}
-          <EventList
-            events={events}
-            status={listStatus}
-            error={list.error ?? meta.error}
-            hasMore={list.hasNextPage}
-            loadingMore={list.isFetchingNextPage}
-            selectedId={filters.event}
-            order={filters.order}
-            onOrderChange={(order) => update({ order })}
-            onSelect={selectFromList}
-            onLoadMore={() => void list.fetchNextPage()}
-            onRetry={() => void (listQuery === null ? meta.refetch() : list.refetch())}
-            onReset={reset}
-          />
+          <ListTabs tab={tab} onChange={setTab} favoritesCount={favorites.length} />
+          <div
+            role="tabpanel"
+            id={panelId(tab)}
+            aria-labelledby={tabId(tab)}
+            className="flex min-h-0 flex-1 flex-col"
+          >
+            {tab === "favorites" ? (
+              <FavoritesList
+                selectedId={filters.event}
+                onSelect={selectFromList}
+                isOnMap={(id) => pointIds.has(id)}
+              />
+            ) : (
+              <EventList
+                events={events}
+                status={listStatus}
+                error={list.error ?? meta.error}
+                hasMore={list.hasNextPage}
+                loadingMore={list.isFetchingNextPage}
+                selectedId={filters.event}
+                order={filters.order}
+                onOrderChange={(order) => update({ order })}
+                onSelect={selectFromList}
+                onLoadMore={() => void list.fetchNextPage()}
+                onRetry={() => void (listQuery === null ? meta.refetch() : list.refetch())}
+                onReset={reset}
+              />
+            )}
+          </div>
         </div>
       </div>
       <StatusBar meta={meta.data} status={meta.status} map={map.data?.metadata} />

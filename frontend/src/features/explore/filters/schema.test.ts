@@ -90,3 +90,12 @@ describe("parámetros de la API", () => {
     });
   });
 });
+
+describe("vista del mapa en la URL", () => {
+  it("2d viaja en el enlace; 3d es el valor por defecto y no se escribe", () => {
+    expect(parseFilters(new URLSearchParams("view=2d")).view).toBe("2d");
+    expect(parseFilters(new URLSearchParams("view=xyz")).view).toBe("3d");
+    expect(serializeFilters({ ...DEFAULT_FILTERS, view: "2d" }).toString()).toBe("view=2d");
+    expect(serializeFilters(DEFAULT_FILTERS).toString()).toBe("");
+  });
+});
