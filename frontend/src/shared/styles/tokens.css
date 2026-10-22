@@ -1,9 +1,38 @@
 /*
- * Tokens de diseño. En Fase 0 solo existen los tokens de movimiento propuestos en
- * docs/UI_UX.md y la base neutra de shadcn (index.css). La paleta, tipografía y
- * escala definitivas se fijan en Fase 3 tras moodboard y wireframes.
+ * Tokens de diseño aprobados en la maqueta de la Fase 3 (docs/UI_UX.md).
+ * Tema oscuro por defecto; el claro se activa con data-theme="light" en <html>.
+ * Contrastes medidos: texto 15,5:1, secundario 7,6:1, acento 10,5:1 (oscuro).
  */
 :root {
+  color-scheme: dark;
+
+  --tm-background: #070b14;
+  --tm-panel: #0a101c;
+  --tm-surface: #0e1524;
+  --tm-surface-raised: #131c2f;
+  --tm-selected: #1c2840;
+  --tm-border: #24324d;
+  --tm-border-subtle: #1b2740;
+  --tm-foreground: #e6edf7;
+  --tm-foreground-secondary: #9aa8bf;
+  --tm-foreground-tertiary: #c9d4e5;
+  --tm-accent: #22d3ee;
+  --tm-accent-foreground: #04121a;
+  --tm-success: #34d399;
+  --tm-warning: #fbbf24;
+  --tm-danger: #f87171;
+
+  /* Profundidad: secuencial, luminosidad decreciente; cada tono ≥ 3:1 sobre el fondo. */
+  --tm-depth-1: #fde68a; /* 0–35 km */
+  --tm-depth-2: #f9a43f; /* 35–70 km */
+  --tm-depth-3: #e8603c; /* 70–150 km */
+  --tm-depth-4: #d0508a; /* 150–300 km */
+  --tm-depth-5: #9b55d0; /* ≥ 300 km */
+
+  --radius-control: 7px;
+  --radius-button: 10px;
+  --radius-panel: 14px;
+
   --duration-instant: 100ms;
   --duration-fast: 150ms;
   --duration-base: 220ms;
@@ -12,8 +41,36 @@
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
 }
 
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --tm-background: #f6f8fb;
+  --tm-panel: #ffffff;
+  --tm-surface: #ffffff;
+  --tm-surface-raised: #eef2f7;
+  --tm-selected: #e2e8f0;
+  --tm-border: #d5dde8;
+  --tm-border-subtle: #e3e8ef;
+  --tm-foreground: #0b1220;
+  --tm-foreground-secondary: #4a5871;
+  --tm-foreground-tertiary: #2b3a52;
+  --tm-accent: #0e7490;
+  --tm-accent-foreground: #ffffff;
+  --tm-success: #047857;
+  --tm-warning: #b45309;
+  --tm-danger: #b91c1c;
+}
+
+/* Movimiento reducido: interruptor propio (data-motion) o preferencia del sistema. */
+:root[data-motion="reduced"] {
+  --duration-instant: 0ms;
+  --duration-fast: 0ms;
+  --duration-base: 0ms;
+  --duration-slow: 0ms;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  :root {
+  :root:not([data-motion="full"]) {
     --duration-instant: 0ms;
     --duration-fast: 0ms;
     --duration-base: 0ms;
