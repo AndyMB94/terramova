@@ -22,6 +22,8 @@ interface FilterPanelProps {
   /** Área visible del globo como bbox (null si se ve todo el planeta). */
   onUseMapView: () => string | null;
   mapAvailable: boolean;
+  /** Explica por qué no se puede elegir el área cuando no hay globo en la página. */
+  mapUnavailableHint?: string;
 }
 
 const legendClass = "mb-2.5 p-0 text-xs font-medium tracking-wider text-muted-foreground uppercase";
@@ -33,6 +35,7 @@ export function FilterPanel({
   periodRange,
   onUseMapView,
   mapAvailable,
+  mapUnavailableHint = "Requiere el globo, que no está disponible en este navegador.",
 }: FilterPanelProps) {
   const typesId = useId();
   const [bbox, setBbox] = useImmediateValue(filters.bbox);
@@ -170,7 +173,7 @@ export function FilterPanel({
         </div>
         <p className="text-xs text-muted-foreground" aria-live="polite">
           {!mapAvailable
-            ? "Requiere el globo, que no está disponible en este navegador."
+            ? mapUnavailableHint
             : (areaHint ??
               (bbox
                 ? "Filtrando por el área visible al pulsar. Vuelve a pulsar para actualizarla."

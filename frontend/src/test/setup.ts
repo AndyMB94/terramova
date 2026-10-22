@@ -2,7 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll } from "vitest";
 
-import { requests } from "./msw/handlers";
+import { analyticsRequests, requests } from "./msw/handlers";
 import { server } from "./msw/server";
 
 // jsdom no implementa matchMedia: por defecto, pantalla estrecha y sin preferencias.
@@ -31,6 +31,7 @@ afterEach(() => {
   cleanup();
   server.resetHandlers();
   requests.length = 0;
+  analyticsRequests.length = 0;
   window.localStorage.clear();
   delete document.documentElement.dataset.motion;
   delete document.documentElement.dataset.theme;
