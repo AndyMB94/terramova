@@ -1,9 +1,10 @@
 import { http, HttpResponse } from "msw";
 
-import { BLAST, EVENTS, meta, SECOND_PAGE } from "./fixtures";
+import { BLAST, EVENTS, meta, SECOND_PAGE, summary, timeline } from "./fixtures";
 
 /** Peticiones recibidas, para comprobar los parámetros que envía la interfaz. */
 export const requests: URL[] = [];
+export const analyticsRequests: URL[] = [];
 
 const WINDOW = { start: "2026-10-15T04:33:36Z", end: "2026-10-22T04:33:36Z" };
 
@@ -44,6 +45,13 @@ export const handlers = [
       },
     }),
   ),
+
+  http.get("*/api/v1/analytics/summary/", ({ request }) => {
+    analyticsRequests.push(new URL(request.url));
+    return HttpResponse.json(summary());
+  }),
+
+  http.get("*/api/v1/analytics/timeline/", () => HttpResponse.json(timeline())),
 
   http.get("*/api/v1/earthquakes/:id/", ({ params }) => {
     const found = [...EVENTS, ...SECOND_PAGE, BLAST].find((item) => item.id === params.id);

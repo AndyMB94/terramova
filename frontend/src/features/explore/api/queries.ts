@@ -6,27 +6,13 @@ import {
 } from "@tanstack/react-query";
 
 import type { FilterQuery, ListQuery } from "@/features/explore/filters/api-query";
-import { apiClient } from "@/shared/api/client";
-import { ApiRequestError } from "@/shared/api/errors";
+import { apiClient, unwrap } from "@/shared/api/client";
 import type { components } from "@/shared/api/schema";
 
 export type Earthquake = components["schemas"]["Earthquake"];
 export type Meta = components["schemas"]["MetaResponse"];
 type ListPage = components["schemas"]["EarthquakeListResponse"];
 export type MapPoints = components["schemas"]["EarthquakeGeoJsonResponse"];
-
-interface FetchResult<T> {
-  data?: T;
-  error?: unknown;
-  response: Response;
-}
-
-function unwrap<T>({ data, error, response }: FetchResult<T>): T {
-  if (data === undefined) {
-    throw new ApiRequestError(response.status, error);
-  }
-  return data;
-}
 
 export function useMeta() {
   return useQuery({

@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { createBrowserRouter, type RouteObject } from "react-router";
 
 import { AboutPage } from "@/features/about";
+import { AnalyticsPage } from "@/features/analytics";
 import { ExplorePage, PerformanceLab } from "@/features/explore";
 
 import { AppShell } from "./AppShell";
@@ -13,6 +14,16 @@ export const routes: RouteObject[] = [
     element: <AppShell />,
     children: [
       { index: true, element: <ExplorePage /> },
+      {
+        path: "analitica",
+        element: (
+          <Suspense
+            fallback={<p className="p-6 text-sm text-muted-foreground">Cargando la analítica…</p>}
+          >
+            <AnalyticsPage />
+          </Suspense>
+        ),
+      },
       { path: "acerca", element: <AboutPage /> },
       // Solo en desarrollo: el build de producción no incluye esta ruta.
       ...(import.meta.env.DEV

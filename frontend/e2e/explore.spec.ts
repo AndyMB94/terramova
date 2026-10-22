@@ -1,6 +1,6 @@
 import { test as base, expect, type Page } from "@playwright/test";
 
-import { BLAST, EVENTS, meta, SECOND_PAGE } from "../src/test/msw/fixtures";
+import { BLAST, EVENTS, meta, SECOND_PAGE, summary, timeline } from "../src/test/msw/fixtures";
 
 /** Desactiva WebGL en la página: la app muestra el aviso y la lista (camino sin globo). */
 function disableWebGL() {
@@ -51,6 +51,14 @@ async function mockApi(page: Page, options: { failList?: boolean } = {}) {
     const results = url.searchParams.get("event_type") === "all" ? [...EVENTS, BLAST] : EVENTS;
     return route.fulfill({ json: { results, next_cursor: "page-2", window: WINDOW } });
   });
+  // La analítica sin filtros se pide sin parámetros: se reconoce por la ruta.
+  await page.route(/\/api\/v1\/analytics\/summary\//, (route) => {
+    listRequests.push(new URL(route.request().url()));
+    return route.fulfill({ json: summary() });
+  });
+  await page.route(/\/api\/v1\/analytics\/timeline\//, (route) =>
+    route.fulfill({ json: timeline() }),
+  );
   await page.route("**/api/v1/earthquakes/geojson/?*", (route) => {
     const url = new URL(route.request().url());
     const events = url.searchParams.get("event_type") === "all" ? [...EVENTS, BLAST] : EVENTS;
@@ -356,4 +364,39 @@ test("sin WebGL se avisa y la lista sigue funcionando", async ({ page }) => {
   const filtersButton = page.getByRole("button", { name: /^Filtros/ });
   if (await filtersButton.isVisible()) await filtersButton.click();
   await expect(page.getByRole("button", { name: "Vista del mapa" })).toBeDisabled();
+});
+
+test("analítica: desde Explorar conserva los filtros y cada gráfica se lee como tabla", async ({
+  page,
+}) => {
+  const requests = await mockApi(page);
+  await page.goto("/?min_magnitude=4");
+
+  await page
+    .getByRole("navigation", { name: "Secciones" })
+    .getByRole("link", { name: "Analítica" })
+    .click();
+
+  await expect(page).toHaveURL(/\/analitica\?min_magnitude=4/);
+  await expect(page.getByRole("heading", { name: "Analítica" })).toBeVisible();
+  await expect(page.getByText("M 6,1")).toBeVisible();
+  await expect
+    .poll(() =>
+      requests
+        .find((url) => url.pathname.includes("/analytics/"))
+        ?.searchParams.get("min_magnitude"),
+    )
+    .toBe("4");
+
+  const magnitudes = page.getByRole("region", { name: "Distribución por magnitud" });
+  await magnitudes.getByRole("button", { name: "Ver como tabla" }).click();
+  await expect(magnitudes.getByRole("table")).toBeVisible();
+  await expect(magnitudes.getByRole("row", { name: /Sin magnitud/ })).toBeVisible();
+
+  // Volver a Explorar mantiene los mismos filtros.
+  await page
+    .getByRole("navigation", { name: "Secciones" })
+    .getByRole("link", { name: "Explorar" })
+    .click();
+  await expect(page).toHaveURL(/\/\?min_magnitude=4/);
 });

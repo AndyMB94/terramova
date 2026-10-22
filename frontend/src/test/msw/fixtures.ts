@@ -88,3 +88,69 @@ export function meta(overrides: Partial<Meta> = {}): Meta {
     ...overrides,
   };
 }
+
+// --- Analítica (Fase 4). Cifras inventadas y coherentes entre sí: 12 eventos. ---
+
+type Summary = components["schemas"]["SummaryResponse"];
+type Timeline = components["schemas"]["TimelineResponse"];
+
+export const ANALYTICS_WINDOW = { start: "2026-10-15T04:33:36Z", end: COVERAGE_END };
+
+export function summary(overrides: Partial<Summary> = {}): Summary {
+  return {
+    window: ANALYTICS_WINDOW,
+    window_clipped: false,
+    total: 12,
+    max_magnitude: 6.1,
+    strongest: {
+      id: "11111111-1111-4111-8111-111111111111",
+      magnitude: 6.1,
+      place: "120 km NE of Ficticia, Testland",
+      occurred_at: "2026-10-21T18:04:11Z",
+    },
+    magnitude_bands: [
+      { key: "lt1", min: null, max: 1, count: 2 },
+      { key: "1-2", min: 1, max: 2, count: 4 },
+      { key: "2-3", min: 2, max: 3, count: 3 },
+      { key: "3-4", min: 3, max: 4, count: 0 },
+      { key: "4-5", min: 4, max: 5, count: 1 },
+      { key: "5-6", min: 5, max: 6, count: 0 },
+      { key: "6-7", min: 6, max: 7, count: 1 },
+      { key: "7plus", min: 7, max: null, count: 0 },
+    ],
+    magnitude_unknown: 1,
+    depth_classes: [
+      { key: "0-35", min_km: null, max_km: 35, count: 7 },
+      { key: "35-70", min_km: 35, max_km: 70, count: 2 },
+      { key: "70-150", min_km: 70, max_km: 150, count: 2 },
+      { key: "150-300", min_km: 150, max_km: 300, count: 0 },
+      { key: "300plus", min_km: 300, max_km: null, count: 1 },
+    ],
+    depth_unknown: 0,
+    comparison: {
+      available: true,
+      previous_window: { start: "2026-10-08T04:33:36Z", end: "2026-10-15T04:33:36Z" },
+      previous_total: 16,
+      reason: null,
+    },
+    ...overrides,
+  };
+}
+
+export function timeline(): Timeline {
+  const counts = [1, 2, 0, 3, 1, 2, 2, 1];
+  return {
+    window: ANALYTICS_WINDOW,
+    granularity: "day",
+    buckets: counts.map((count, index) => {
+      const start = new Date(Date.UTC(2026, 9, 15 + index));
+      return {
+        start: start.toISOString().replace(".000", ""),
+        end: new Date(start.getTime() + 86_400_000).toISOString().replace(".000", ""),
+        count,
+        max_magnitude: count ? 2 + index * 0.5 : null,
+        is_partial: index === 0 || index === counts.length - 1,
+      };
+    }),
+  };
+}

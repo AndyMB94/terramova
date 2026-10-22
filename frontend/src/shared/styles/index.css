@@ -134,3 +134,15 @@
     animation-name: terramova-panel-in-x;
   }
 }
+
+/* Entrada corta de tarjetas y gráficas, solo al aparecer (sin animar cada actualización). */
+@keyframes terramova-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.animate-fade-in {
+  animation: terramova-fade-in var(--duration-slow) var(--ease-out);
+}

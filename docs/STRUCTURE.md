@@ -296,3 +296,9 @@ Solo esto; el resto llega con su fase.
 
 - `backend/apps/analytics/`: `domain.py` (bandas, granularidad, intervalos y ventana anterior; puro), `selectors.py` (resumen en una consulta agregada, línea temporal con `Trunc` en UTC, conteo), `services.py` (comparación con control de cobertura), `api/` (`SummaryView`, `TimelineView`, serializadores que documentan el contrato) y `tests/`. Sin modelos ni migraciones.
 - `backend/core/api/public.py`: `PublicReadView`, `ErrorSerializer`, `WindowSerializer`, `ERROR_RESPONSES` y `format_datetime`, antes en `apps/earthquakes/api/` (D99).
+
+### Resultado real de la Fase 4 · PR 2 (página de Analítica)
+
+- `frontend/src/features/analytics/`: `AnalyticsPage.tsx` (cargada con `React.lazy` desde `index.ts`), `SummaryCards.tsx` (total, magnitud máxima con enlace al globo y comparación), `charts/` (`ChartCard` con alternativa en tabla, `BarChartFrame` sobre Recharts, `TimelineCard`, `DistributionCards`), `api/queries.ts` y `labels.ts` (textos y fechas UTC, puro y probado).
+- `features/explore/index.ts` exporta lo compartido (D105); `filters/chips.ts` sale de `ExplorePage`. Ruta `/analitica` en `app/router.tsx` (D103).
+- Pruebas: `src/app/analytics.test.tsx` (MSW con datos ficticios de analítica en `test/msw/fixtures.ts`) y un recorrido E2E en los tres tamaños.
