@@ -436,7 +436,7 @@ export default function CesiumGlobe(props: CesiumGlobeProps) {
         </button>
       </div>
 
-      <p className="pointer-events-none absolute right-2 bottom-2 max-w-[45%] text-right text-[11px] leading-snug text-muted-foreground lg:right-4 lg:bottom-4 lg:max-w-[calc(100%-300px)]">
+      <p className="pointer-events-none absolute right-2 bottom-2 max-w-[45%] rounded-sm bg-surface/85 px-1.5 py-0.5 text-right text-[11px] leading-snug text-muted-foreground lg:right-4 lg:bottom-4 lg:max-w-[calc(100%-300px)]">
         <span ref={creditsRef} className="terramova-credits pointer-events-auto" /> · Fronteras:
         Natural Earth · Datos: USGS · Motor: CesiumJS
       </p>
