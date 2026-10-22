@@ -4,7 +4,7 @@ Explorador interactivo de actividad sísmica mundial con globo 3D, mapa 2D, dato
 
 ## Estado del paquete
 
-Fase 0 (base reproducible) implementada el 21 de octubre de 2026: entorno local con frontend, backend, PostgreSQL y Redis, calidad automatizada y CI. Fase 1 implementada: sincronización real e idempotente con USGS. Todavía **no** hay API pública, globo ni configuración de producción; ver [docs/ROADMAP.md](docs/ROADMAP.md). TerraMova es un nombre provisional; disponibilidad de marca sin comprobar.
+Fase 0 (base reproducible) implementada el 21 de octubre de 2026: entorno local con frontend, backend, PostgreSQL y Redis, calidad automatizada y CI. Fases 1 y 2 implementadas: sincronización real e idempotente con USGS y API pública de solo lectura. Todavía **no** hay interfaz con globo ni configuración de producción; ver [docs/ROADMAP.md](docs/ROADMAP.md). TerraMova es un nombre provisional; disponibilidad de marca sin comprobar.
 
 ## Desarrollo local
 
@@ -34,12 +34,24 @@ make sync FEED=month   # importa los últimos 30 días desde USGS (luego FEED=da
 - Backend: http://127.0.0.1:8100/health/live/ y http://127.0.0.1:8100/health/ready/ (comprueba PostgreSQL y Redis; 503 sin detalles si fallan).
 - Todos los puertos se publican solo en `127.0.0.1`: backend 8100, PostgreSQL 5433, Redis 6380 (con contraseña).
 - `make sync FEED=day|week|month` descarga el feed de USGS y lo guarda sin duplicar; si el feed no cambió, USGS responde 304 y no se descarga nada. Códigos de salida: 0 correcta, 1 fallida, 3 otra sincronización en curso. Cada ejecución queda registrada en `SyncRun` (visible en el admin).
-- `make help` lista todos los objetivos. `make down` detiene los servicios y conserva los datos.
+- `make help` lista todos los objetivos.
+
+### API pública (solo lectura)
+
+Con datos sincronizados, por ejemplo:
+
+```bash
+curl http://127.0.0.1:8100/api/v1/meta/                                    # cobertura, frescura y límites
+curl "http://127.0.0.1:8100/api/v1/earthquakes/?min_magnitude=4&page_size=20"
+curl "http://127.0.0.1:8100/api/v1/earthquakes/geojson/?bbox=-82,-56,-34,13"  # Sudamérica
+```
+
+Sin fechas se devuelven los últimos 7 días (máximo 31) y solo sismos (`event_type=all` para todos los tipos). El contrato completo está en `backend/openapi/schema.yaml`; tras cambiar la API, `make schema` lo regenera junto con los tipos del frontend. `make down` detiene los servicios y conserva los datos.
 
 ### Verificación
 
 ```bash
-make check      # lint + formato + tipos + reglas de capas + tests + build (lo mismo que la CI)
+make check      # lint + formato + tipos + capas + contrato + tests + build (lo mismo que la CI)
 make precommit  # hooks de pre-commit, incluida la detección de secretos
 ```
 

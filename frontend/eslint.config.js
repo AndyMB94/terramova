@@ -40,7 +40,7 @@ const restrictImports = (...patterns) => ({
 });
 
 export default defineConfig(
-  { ignores: ["dist", "coverage", "node_modules"] },
+  { ignores: ["dist", "coverage", "node_modules", "src/shared/api/schema.d.ts"] },
   {
     files: ["**/*.{ts,tsx}"],
     extends: [js.configs.recommended, tseslint.configs.strict],

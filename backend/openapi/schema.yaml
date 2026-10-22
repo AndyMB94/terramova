@@ -1,0 +1,581 @@
+openapi: 3.0.3
+info:
+  title: TerraMova API
+  version: 1.0.0
+  description: API pública de solo lectura con eventos sísmicos de USGS. Fechas en
+    UTC; consultas siempre acotadas por ventana, página y número de puntos.
+paths:
+  /api/v1/earthquakes/:
+    get:
+      operationId: earthquakes_list
+      description: Paginación por cursor estable ante inserciones. Sin fechas usa
+        los últimos 7 días de la cobertura; el rango máximo es 31 días. Por defecto
+        solo `earthquake`.
+      summary: Lista de eventos
+      parameters:
+      - in: query
+        name: bbox
+        schema:
+          type: string
+          maxLength: 100
+          minLength: 1
+        description: oeste,sur,este,norte en grados. Si oeste > este cruza el antimeridiano.
+      - in: query
+        name: cursor
+        schema:
+          type: string
+          maxLength: 500
+          minLength: 1
+      - in: query
+        name: end
+        schema:
+          type: string
+          format: date-time
+        description: Fin (excluido), ISO 8601 con zona horaria.
+      - in: query
+        name: event_type
+        schema:
+          type: string
+          default: earthquake
+          maxLength: 32
+          minLength: 1
+        description: Tipo de evento de USGS; "all" incluye todos.
+      - in: query
+        name: max_depth_km
+        schema:
+          type: number
+          format: double
+          maximum: 1000
+          minimum: -100
+      - in: query
+        name: max_magnitude
+        schema:
+          type: number
+          format: double
+          maximum: 12
+          minimum: -5
+      - in: query
+        name: min_depth_km
+        schema:
+          type: number
+          format: double
+          maximum: 1000
+          minimum: -100
+      - in: query
+        name: min_magnitude
+        schema:
+          type: number
+          format: double
+          maximum: 12
+          minimum: -5
+      - in: query
+        name: ordering
+        schema:
+          enum:
+          - -occurred_at
+          - -magnitude
+          type: string
+          default: -occurred_at
+          minLength: 1
+        description: |-
+          * `-occurred_at` - -occurred_at
+          * `-magnitude` - -magnitude
+      - in: query
+        name: page_size
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 50
+      - in: query
+        name: start
+        schema:
+          type: string
+          format: date-time
+        description: Inicio (incluido), ISO 8601 con zona horaria.
+      tags:
+      - earthquakes
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EarthquakeListResponse'
+              examples:
+                PrimeraPágina:
+                  value:
+                    results:
+                    - id: 5b0f8f7e-3c1a-4c55-9d7e-2f4d7a1c9e10
+                      source: usgs
+                      external_id: us6000u3tu
+                      occurred_at: '2026-10-21T18:04:11.123000+00:00'
+                      source_updated_at: '2026-10-21T18:30:02.000000+00:00'
+                      magnitude: 4.6
+                      magnitude_type: mb
+                      longitude: -71.62
+                      latitude: -30.15
+                      depth_km: 48.3
+                      place: 35 km W of Ovalle, Chile
+                      status: reviewed
+                      event_type: earthquake
+                      source_url: https://earthquake.usgs.gov/earthquakes/eventpage/us6000u3tu
+                    next_cursor: eyJmIjoib2NjdXJyZWRfYXQiLCJ2IjoiLi4uIn0
+                    window:
+                      start: '2026-10-15T03:58:52+00:00'
+                      end: '2026-10-22T03:58:52+00:00'
+                  summary: Primera página
+                  description: GET /api/v1/earthquakes/?min_magnitude=4&bbox=-82,-56,-34,13
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                FiltrosNoVálidos:
+                  value:
+                    code: invalid_filters
+                    message: Los filtros no son válidos.
+                    errors:
+                      start:
+                      - Indica la zona horaria, p. ej. 2026-10-01T00:00:00Z.
+                  summary: Filtros no válidos
+          description: Filtros no válidos (invalid_filters).
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Demasiadas peticiones (rate_limited).
+  /api/v1/earthquakes/{event_id}/:
+    get:
+      operationId: earthquakes_retrieve
+      summary: Detalle de un evento
+      parameters:
+      - in: path
+        name: event_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - earthquakes
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Earthquake'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: El evento no existe.
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Demasiadas peticiones (rate_limited).
+  /api/v1/earthquakes/geojson/:
+    get:
+      operationId: earthquakes_geojson
+      description: Como máximo 5000 puntos. Si hay más, se devuelven los de mayor
+        magnitud y `metadata.truncated` es true; `total_matching` indica cuántos coinciden.
+      summary: Puntos para el mapa (GeoJSON)
+      parameters:
+      - in: query
+        name: bbox
+        schema:
+          type: string
+          maxLength: 100
+          minLength: 1
+        description: oeste,sur,este,norte en grados. Si oeste > este cruza el antimeridiano.
+      - in: query
+        name: end
+        schema:
+          type: string
+          format: date-time
+        description: Fin (excluido), ISO 8601 con zona horaria.
+      - in: query
+        name: event_type
+        schema:
+          type: string
+          default: earthquake
+          maxLength: 32
+          minLength: 1
+        description: Tipo de evento de USGS; "all" incluye todos.
+      - in: query
+        name: max_depth_km
+        schema:
+          type: number
+          format: double
+          maximum: 1000
+          minimum: -100
+      - in: query
+        name: max_magnitude
+        schema:
+          type: number
+          format: double
+          maximum: 12
+          minimum: -5
+      - in: query
+        name: min_depth_km
+        schema:
+          type: number
+          format: double
+          maximum: 1000
+          minimum: -100
+      - in: query
+        name: min_magnitude
+        schema:
+          type: number
+          format: double
+          maximum: 12
+          minimum: -5
+      - in: query
+        name: start
+        schema:
+          type: string
+          format: date-time
+        description: Inicio (incluido), ISO 8601 con zona horaria.
+      tags:
+      - earthquakes
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EarthquakeGeoJsonResponse'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Filtros no válidos (invalid_filters).
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Demasiadas peticiones (rate_limited).
+  /api/v1/meta/:
+    get:
+      operationId: meta_retrieve
+      summary: Fuente, cobertura, frescura y límites
+      tags:
+      - meta
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetaResponse'
+          description: ''
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Demasiadas peticiones (rate_limited).
+components:
+  schemas:
+    Earthquake:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        source:
+          type: string
+          maxLength: 16
+        external_id:
+          type: string
+          maxLength: 64
+        occurred_at:
+          type: string
+          format: date-time
+        source_updated_at:
+          type: string
+          format: date-time
+        magnitude:
+          type: number
+          format: double
+          nullable: true
+        magnitude_type:
+          type: string
+          maxLength: 16
+        longitude:
+          type: number
+          format: double
+        latitude:
+          type: number
+          format: double
+        depth_km:
+          type: number
+          format: double
+          nullable: true
+        place:
+          type: string
+          maxLength: 255
+        status:
+          type: string
+          maxLength: 16
+        event_type:
+          type: string
+          maxLength: 32
+        source_url:
+          oneOf:
+          - type: string
+            format: uri
+            maxLength: 500
+          - type: string
+            maxLength: 0
+      required:
+      - depth_km
+      - external_id
+      - id
+      - latitude
+      - longitude
+      - magnitude
+      - occurred_at
+      - source
+      - source_updated_at
+    EarthquakeGeoJsonResponse:
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/EarthquakeGeoJsonResponseTypeEnum'
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/MapFeature'
+        metadata:
+          $ref: '#/components/schemas/MapMetadata'
+      required:
+      - features
+      - metadata
+      - type
+    EarthquakeGeoJsonResponseTypeEnum:
+      enum:
+      - FeatureCollection
+      type: string
+      description: '* `FeatureCollection` - FeatureCollection'
+    EarthquakeListResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Earthquake'
+        next_cursor:
+          type: string
+          nullable: true
+        window:
+          allOf:
+          - $ref: '#/components/schemas/Window'
+          nullable: true
+          description: Ventana efectiva aplicada.
+      required:
+      - next_cursor
+      - results
+      - window
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        errors:
+          type: object
+          additionalProperties: {}
+          description: Detalle por campo (solo 400).
+      required:
+      - code
+      - message
+    Limits:
+      type: object
+      properties:
+        max_window_days:
+          type: integer
+        default_window_days:
+          type: integer
+        default_page_size:
+          type: integer
+        max_page_size:
+          type: integer
+        max_map_points:
+          type: integer
+      required:
+      - default_page_size
+      - default_window_days
+      - max_map_points
+      - max_page_size
+      - max_window_days
+    MapFeature:
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/MapFeatureTypeEnum'
+        id:
+          type: string
+          format: uuid
+        geometry:
+          $ref: '#/components/schemas/PointGeometry'
+        properties:
+          $ref: '#/components/schemas/MapPointProperties'
+      required:
+      - geometry
+      - id
+      - properties
+      - type
+    MapFeatureTypeEnum:
+      enum:
+      - Feature
+      type: string
+      description: '* `Feature` - Feature'
+    MapMetadata:
+      type: object
+      properties:
+        window:
+          allOf:
+          - $ref: '#/components/schemas/Window'
+          nullable: true
+        total_matching:
+          type: integer
+        returned:
+          type: integer
+        limit:
+          type: integer
+        truncated:
+          type: boolean
+        selection:
+          allOf:
+          - $ref: '#/components/schemas/SelectionEnum'
+          description: |-
+            Si se trunca, se conservan los eventos de mayor magnitud.
+
+            * `magnitude_desc` - magnitude_desc
+      required:
+      - limit
+      - returned
+      - selection
+      - total_matching
+      - truncated
+      - window
+    MapPointProperties:
+      type: object
+      properties:
+        magnitude:
+          type: number
+          format: double
+          nullable: true
+        depth_km:
+          type: number
+          format: double
+          nullable: true
+        occurred_at:
+          type: string
+          format: date-time
+        place:
+          type: string
+      required:
+      - depth_km
+      - magnitude
+      - occurred_at
+      - place
+    MetaResponse:
+      type: object
+      properties:
+        source:
+          $ref: '#/components/schemas/Source'
+        coverage:
+          allOf:
+          - $ref: '#/components/schemas/Window'
+          nullable: true
+          description: Tramo continuo sincronizado.
+        last_successful_sync_at:
+          type: string
+          format: date-time
+          nullable: true
+        is_stale:
+          type: boolean
+        stale_after_seconds:
+          type: integer
+        data_version:
+          type: integer
+        default_event_type:
+          type: string
+        limits:
+          $ref: '#/components/schemas/Limits'
+      required:
+      - coverage
+      - data_version
+      - default_event_type
+      - is_stale
+      - last_successful_sync_at
+      - limits
+      - source
+      - stale_after_seconds
+    PointGeometry:
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/PointGeometryTypeEnum'
+        coordinates:
+          type: array
+          items:
+            type: number
+            format: double
+          description: '[longitud, latitud]'
+          maxItems: 2
+          minItems: 2
+      required:
+      - coordinates
+      - type
+    PointGeometryTypeEnum:
+      enum:
+      - Point
+      type: string
+      description: '* `Point` - Point'
+    SelectionEnum:
+      enum:
+      - magnitude_desc
+      type: string
+      description: '* `magnitude_desc` - magnitude_desc'
+    Source:
+      type: object
+      properties:
+        name:
+          type: string
+        url:
+          type: string
+          format: uri
+      required:
+      - name
+      - url
+    Window:
+      type: object
+      properties:
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+      required:
+      - end
+      - start

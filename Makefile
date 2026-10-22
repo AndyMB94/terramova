@@ -9,7 +9,7 @@ PRE_COMMIT := uvx --from pre-commit==4.7.0 pre-commit
 BACKEND := cd backend &&
 FRONTEND := pnpm --dir frontend
 
-.PHONY: help env setup up down logs ps migrate sync web \
+.PHONY: help env setup up down logs ps migrate sync web schema contract \
 	lint lint-backend lint-frontend fmt test test-backend test-frontend build check precommit
 
 help: ## Lista los objetivos disponibles
@@ -46,6 +46,18 @@ sync: ## Sincroniza un feed de USGS: make sync FEED=day|week|month
 web: ## Servidor de desarrollo del frontend en http://127.0.0.1:5173
 	$(FRONTEND) dev
 
+schema: ## Regenera el contrato OpenAPI y los tipos TypeScript del frontend
+	$(BACKEND) uv run python manage.py spectacular --file openapi/schema.yaml --validate --fail-on-warn
+	$(FRONTEND) gen:api
+
+contract: ## Falla si el contrato o los tipos generados están desactualizados
+	@tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT; \
+	cd backend && uv run python manage.py spectacular --file "$$tmp/schema.yaml" --validate --fail-on-warn && cd .. && \
+	diff -u backend/openapi/schema.yaml "$$tmp/schema.yaml" && \
+	pnpm --dir frontend exec openapi-typescript ../backend/openapi/schema.yaml -o "$$tmp/schema.d.ts" >/dev/null && \
+	diff -u frontend/src/shared/api/schema.d.ts "$$tmp/schema.d.ts" && \
+	echo "Contrato y tipos al día."
+
 lint: lint-backend lint-frontend ## Lint, formato, tipos y reglas de capas
 
 lint-backend:
@@ -76,7 +88,7 @@ test-frontend:
 build: ## Compila el frontend
 	$(FRONTEND) build
 
-check: lint test build ## Todo lo que ejecuta la CI
+check: lint contract test build ## Todo lo que ejecuta la CI
 
 precommit: ## Ejecuta los hooks de pre-commit sobre todo el repositorio
 	$(PRE_COMMIT) run --all-files

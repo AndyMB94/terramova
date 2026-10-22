@@ -52,6 +52,18 @@ Fecha inicial: 2026-10-21. Mantener actualizado cuando se implemente o cambie el
 | D46 | Política de rechazo | Fase 1. Un evento inválido se rechaza sin abortar el lote (estado `partial`, motivos agrupados en `rejected_reasons`). Si se rechaza todo el lote, la ejecución es `failed`. Se aceptan eventos de [ahora − 31 días, ahora + 1 h]. URLs ajenas a `https://earthquake.usgs.gov/` se descartan sin rechazar el evento. Un JSON con `NaN`/`Infinity` invalida el feed entero |
 | D47 | Se guardan todos los tipos de evento de USGS | Fase 1. El 2,4 % no son sismos (voladuras, explosiones, `ice quake`…). Se conservan con `event_type`; **pendiente para la Fase 2:** decidir si la API muestra por defecto solo `earthquake` |
 | D48 | `integrations/` no importa nada de Django | Fase 1. import-linter no admite prohibir solo `django.db`; la regla más estricta se cumple y sigue garantizando que los adapters no tocan el ORM |
+| D49 | **La API muestra por defecto solo `event_type=earthquake`** | Confirmado por el propietario 2026-10-22 (resuelve D47). `event_type=all` incluye todos; también se puede pedir un tipo concreto |
+| D50 | **Mapa truncado por mayor magnitud** | Confirmado por el propietario 2026-10-22. Máximo 5 000 puntos; si hay más se conservan los de mayor magnitud y la respuesta indica `truncated`, `total_matching` y `selection: magnitude_desc` |
+| D51 | **Ventana por defecto: últimos 7 días de la cobertura** | Confirmado por el propietario 2026-10-22. Se cuenta desde el final de la cobertura (última sincronización confirmada), no desde "ahora", para que la respuesta sea estable entre sincronizaciones y cacheable. Máximo 31 días; se recorta a la cobertura y se informa la ventana efectiva |
+| D52 | GeoJSON estándar para el mapa (no columnar) | Fase 2, medido 2026-10-22: 5 000 puntos sin `place`, 137 KB gzip en GeoJSON frente a 100 KB en columnar. La diferencia no justifica perder interoperabilidad. Con `place` (para tooltip): 7 días ≈ 1 900 puntos, 104 KB gzip; 5 000 puntos, 279 KB gzip |
+| D53 | Paginación keyset propia en lugar de `CursorPagination` de DRF | Fase 2. DRF posiciona con el primer campo más un desplazamiento: con cientos de empates de magnitud, una inserción entre páginas duplica o salta resultados. El cursor guarda (valor, pk), con nulos al final; solo hay `next_cursor` |
+| D54 | Cobertura = tramo continuo de ventanas de `SyncRun` correctos | Fase 2. Un 304 cubre [inicio − periodo del feed, inicio]. Un hueco (scheduler detenido) corta la cobertura en vez de ocultarse. Se cachea por última sincronización |
+| D55 | Coordenadas y valores redondeados en la API | Fase 2. USGS publica parte de las coordenadas con ruido de float32 (97 de 187 eventos del feed diario). Se guardan tal cual y la API redondea: coordenadas a 6 decimales, profundidad a 3, magnitud a 2 |
+| D56 | Códigos de error `invalid_filters` (400) y `rate_limited` (429) | Fase 2. Se alinean con DATA_API.md; antes el manejador usaba `invalid_request` y `throttled` |
+| D57 | Límites de tasa por IP (120/min) y global (3000/min), configurables; límite local más bajo si Redis falla | Fase 2. Valores iniciales sin medición de carga: se ajustan en la Fase 6. `API_NUM_PROXIES=1` detrás de Nginx para leer la IP real. Las rutas de salud no se limitan |
+| D58 | `SCHEMA_VERSION` en las claves de caché y ETag | Fase 2. Cualquier cambio de formato de respuesta debe incrementarlo; si no, Redis podría servir el formato anterior hasta 5 min |
+| D59 | `statement_timeout` de PostgreSQL (15 s por defecto) | Fase 2. Acota cualquier consulta, incluida una pública costosa. Configurable con `DB_STATEMENT_TIMEOUT_MS` |
+| D60 | openapi-typescript 7.13 con TypeScript 6.0 | Fase 2. Declara compatibilidad con TS 5 (aviso de dependencia peer); verificado que genera tipos correctos, incluidos los nulos. Reevaluar al publicarse una versión que declare TS 6 |
 
 ## Pendientes antes de habilitar IA
 
@@ -59,7 +71,7 @@ Modelo exacto, tarifa vigente y categorías facturables, conteo/cota de tokens, 
 
 ## Pendientes de producto/datos
 
-Formato de puntos del mapa (GeoJSON estándar o columnar) tras medir. Tipos de evento que la API muestra por defecto (D47). Cálculo de cobertura para `/meta` a partir de `SyncRun` (Fase 2). Retención resuelta en D41.
+Resueltos: retención (D41), tipos por defecto (D49), formato de puntos (D52) y cobertura (D54). Pendiente: ajustar límites de tasa y TTL de caché con una prueba de carga (Fase 6).
 
 ## Pendientes antes de publicar
 

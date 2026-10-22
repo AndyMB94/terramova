@@ -1,6 +1,6 @@
 # Datos, sincronización y API
 
-Modelos y sincronización implementados en Fase 1; los endpoints son contratos propuestos para la Fase 2. UTC en almacenamiento y API; intervalos `[start, end)` para evitar solapamientos. Unidades explícitas.
+Modelos y sincronización implementados en Fase 1; API pública de eventos y `meta` implementada en Fase 2 (analítica y resúmenes siguen propuestos). UTC en almacenamiento y API; intervalos `[start, end)` para evitar solapamientos. Unidades explícitas.
 
 ## Origen
 
@@ -37,17 +37,17 @@ Comando: `python manage.py sync_earthquakes --feed day|week|month` (`make sync F
 
 La descarga ocurre fuera de transacción y el upsert del lote se aplica en una sola transacción (todo o nada). Proteger el upsert contra carreras con restricción única. El fallo de USGS conserva los datos anteriores y no cambia falsamente el timestamp de éxito.
 
-## Rutas propuestas
+## Rutas
 
 | Método y ruta | Uso |
 | --- | --- |
-| `GET /api/v1/earthquakes/` | Lista paginada de eventos |
-| `GET /api/v1/earthquakes/{id}/` | Detalle |
-| `GET /api/v1/earthquakes/geojson/` | Puntos acotados para mapa |
+| `GET /api/v1/earthquakes/` | Lista paginada de eventos (implementada) |
+| `GET /api/v1/earthquakes/{id}/` | Detalle por UUID interno (implementada) |
+| `GET /api/v1/earthquakes/geojson/` | Puntos acotados para mapa (implementada) |
 | `GET /api/v1/analytics/summary/` | Conteo, rango y distribuciones |
 | `GET /api/v1/analytics/timeline/` | Eventos agregados por hora/día |
 | `GET /api/v1/activity-summaries/latest/` | Leer el resumen ya guardado o estado no disponible |
-| `GET /api/v1/meta/` | Fuente, cobertura disponible, fecha de éxito y versión de datos |
+| `GET /api/v1/meta/` | Fuente, cobertura, `last_successful_sync_at`, `is_stale`, versión de datos y límites (implementada) |
 | `GET /health/live/` | Salud del proceso, sin secretos |
 | `GET /health/ready/` | Dependencias esenciales, detalle operativo restringido |
 
@@ -57,19 +57,21 @@ Desde la Fase 2, la fuente de verdad del contrato es `backend/openapi/schema.yam
 
 ## Parámetros y límites iniciales
 
-`start`, `end` ISO 8601 con offset; `min_magnitude`, `max_magnitude`; `min_depth_km`, `max_depth_km`; `bbox=west,south,east,north`; `ordering=-occurred_at` o `-magnitude`; `cursor`, `page_size`.
+`start` (incluido), `end` (excluido) ISO 8601 con zona horaria obligatoria; `min_magnitude`, `max_magnitude` (−5…12); `min_depth_km`, `max_depth_km` (−100…1000); `bbox=west,south,east,north`; `event_type` (por defecto `earthquake`, `all` para todos; D49); `ordering=-occurred_at` o `-magnitude`; `cursor`, `page_size`.
 
-- Ventana máxima 31 días y dentro de cobertura disponible en MVP.
-- Lista: 50 por página por defecto, 100 máximo. **Paginación por cursor** sobre `(occurred_at, id)` o `(magnitude, id)`: con eventos nuevos cada pocos minutos, la paginación por número de página produce duplicados y saltos. Orden estable con desempate por ID.
-- Mapa: máximo inicial 5.000 puntos, sujeto a medición. Responder `truncated`, `total_matching` y criterio de selección si excede el límite. Evaluar, además del GeoJSON estándar, un formato columnar compacto (`ids`, `lon`, `lat`, `mag`, `depth_km`, `time` como arrays) y medir tamaño comprimido antes de elegir.
+- Ventana máxima 31 días. Sin fechas: últimos 7 días hasta el final de la cobertura (D51). La ventana se recorta a la cobertura y la respuesta la informa (`window`); sin cobertura, resultados vacíos y `window: null`.
+- Lista: 50 por página por defecto, 100 máximo. **Paginación por cursor (keyset propio, D53)** sobre `(occurred_at, id)` o `(magnitude, id)` descendente, nulos al final: con eventos nuevos cada pocos minutos, la paginación por número de página o por desplazamiento produce duplicados y saltos. Respuesta `{results, next_cursor, window}`.
+- Mapa: GeoJSON estándar (D52), máximo 5.000 puntos. Si se excede, se conservan los de mayor magnitud (D50) y `metadata` incluye `truncated`, `total_matching`, `returned`, `limit` y `selection`. Propiedades: magnitud, profundidad, hora y lugar. Números redondeados (D55).
 - Estadísticas se calculan sobre el conjunto filtrado completo, no sobre una página ni sobre los puntos truncados.
 - Validar rangos, valores finitos, longitudes y bbox; tratar cruce del antimeridiano explícitamente (west > east como dos intervalos) y probarlo.
-- Límites por IP y globales configurables; pruebas de carga ajustarán valores antes de publicar.
+- Límites por IP (120/min) y globales (3000/min) configurables (D57); pruebas de carga ajustarán valores antes de publicar. `statement_timeout` de 15 s (D59).
 
-`meta` debe incluir ventana efectiva, versión de datos y `last_successful_sync_at`. Un filtro fuera de cobertura devuelve error claro o intersección explícita; nunca aparentar cobertura completa.
+`meta` incluye cobertura (tramo continuo de sincronizaciones correctas, D54), versión de datos, `last_successful_sync_at` e `is_stale` (más de 15 min sin sincronizar). Un filtro fuera de cobertura devuelve error claro o intersección explícita; nunca aparentar cobertura completa.
 
 ## Errores y caché
 
-Errores con código estable y mensaje útil: `400 invalid_filters`, `404 event_not_found`, `429 rate_limited`, `503 temporarily_unavailable`. Sin stack traces. `Retry-After` cuando corresponda. Resumen ausente devuelve estado documentado sin intentar generarlo.
+Errores con código estable y mensaje útil: `400 invalid_filters` (con `errors` por campo), `404 event_not_found`, `429 rate_limited`, `503 temporarily_unavailable`. Sin stack traces. `Retry-After` cuando corresponda. Resumen ausente devuelve estado documentado sin intentar generarlo.
 
-Caché HTTP primero: GET públicos con `Cache-Control: public, max-age=<ciclo de sync>, stale-while-revalidate` y `ETag` derivado de versión de datos + filtros canónicos, respondiendo 304 cuando coincida; Nginx aplica microcaché (ver ARCHITECTURE.md). Detrás, caché Redis por filtros canónicos, versión de datos y versión de esquema, con TTL acotado. No incluir timestamps variables en claves. Limitar cardinalidad evitando consultas arbitrarias infinitas; limitar paginación y rangos. Si Redis falla, consultas públicas tienen límites conservadores o retornan degradación; llamadas IA siempre bloqueadas si falta coordinación necesaria.
+Implementado en Fase 2: `Cache-Control: public, max-age=60, stale-while-revalidate=60` (meta: 30 s), `ETag` calculado antes de consultar la base y caché Redis de 5 min con la misma clave (`SCHEMA_VERSION`, versión de datos, filtros efectivos, orden, página y cursor; D58). Si Redis falla, se responde sin caché y los límites de tasa pasan a un límite local más bajo por proceso.
+
+Diseño original: GET públicos con `Cache-Control: public, max-age=<ciclo de sync>, stale-while-revalidate` y `ETag` derivado de versión de datos + filtros canónicos, respondiendo 304 cuando coincida; Nginx aplica microcaché (ver ARCHITECTURE.md). Detrás, caché Redis por filtros canónicos, versión de datos y versión de esquema, con TTL acotado. No incluir timestamps variables en claves. Limitar cardinalidad evitando consultas arbitrarias infinitas; limitar paginación y rangos. Si Redis falla, consultas públicas tienen límites conservadores o retornan degradación; llamadas IA siempre bloqueadas si falta coordinación necesaria.

@@ -2,6 +2,7 @@ import logging
 
 from django.core.cache import cache
 from django.db import DatabaseError, connection
+from drf_spectacular.utils import extend_schema
 from redis.exceptions import RedisError
 from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
@@ -11,21 +12,25 @@ from rest_framework.views import APIView
 logger = logging.getLogger(__name__)
 
 
+@extend_schema(exclude=True)
 class LiveView(APIView):
     """El proceso responde. No consulta dependencias ni revela versiones."""
 
     authentication_classes = ()
     permission_classes = (AllowAny,)
+    throttle_classes = ()
 
     def get(self, request: Request) -> Response:
         return Response({"status": "ok"})
 
 
+@extend_schema(exclude=True)
 class ReadyView(APIView):
     """PostgreSQL y Redis responden. El detalle del fallo solo va a los logs."""
 
     authentication_classes = ()
     permission_classes = (AllowAny,)
+    throttle_classes = ()
 
     def get(self, request: Request) -> Response:
         if database_is_available() and cache_is_available():
