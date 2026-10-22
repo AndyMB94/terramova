@@ -1,0 +1,17 @@
+# Solo desarrollo (Compose lo aplica automáticamente junto a compose.yaml).
+# Todos los puertos se publican en 127.0.0.1: nunca "PUERTO:PUERTO" ni 0.0.0.0.
+services:
+  db:
+    ports:
+      - "127.0.0.1:${DB_PORT:-5433}:5432"
+
+  redis:
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6380}:6379"
+
+  backend:
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+    ports:
+      - "127.0.0.1:8100:8000"
+    volumes:
+      - ./backend:/app

@@ -1,0 +1,72 @@
+[project]
+name = "terramova-backend"
+version = "0.0.0"
+description = "API de TerraMova: eventos sísmicos públicos, analítica y resúmenes controlados."
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "django==5.2.18",
+    "django-environ==0.14.0",
+    "djangorestframework==3.18.3",
+    "psycopg[binary]==3.3.6",
+    "redis==8.1.0",
+]
+
+[dependency-groups]
+dev = [
+    "django-stubs[compatible-mypy]==6.1.2",
+    "djangorestframework-stubs==3.18.1",
+    "import-linter==2.15",
+    "pytest==9.1.1",
+    "pytest-django==4.14.0",
+    "ruff==0.17.1",
+]
+
+[tool.uv]
+package = false
+
+# --- ruff ---
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+extend-exclude = ["**/migrations/**"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "S", "SIM", "DJ", "RUF", "BLE"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S101"]
+"conftest.py" = ["S101"]
+"config/settings/*.py" = ["F403", "F405"]
+
+# --- mypy ---
+[tool.mypy]
+python_version = "3.13"
+strict = true
+plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
+exclude = ["^\\.venv/"]
+
+[[tool.mypy.overrides]]
+module = ["environ", "environ.*"]
+ignore_missing_imports = true
+
+[tool.django-stubs]
+django_settings_module = "config.settings.test"
+
+# --- pytest ---
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+addopts = "--strict-markers --strict-config -ra"
+testpaths = ["core", "config"]
+markers = [
+    "integration: usa PostgreSQL y Redis reales (levantados con `make up` o servicios de CI)",
+]
+
+# --- import-linter: reglas de dependencia de docs/STRUCTURE.md ---
+[tool.importlinter]
+root_packages = ["config", "core"]
+
+[[tool.importlinter.contracts]]
+name = "core es transversal: no depende de config (regla 5)"
+type = "forbidden"
+source_modules = ["core"]
+forbidden_modules = ["config"]

@@ -31,6 +31,19 @@ Fecha inicial: 2026-10-21. Mantener actualizado cuando se implemente o cambie el
 | D25 | Subdominio `terramova.andymallcco.dev`, DNS en Porkbun | Confirmado 2026-10-21. Sigue el patrón de subdominio por proyecto |
 | D26 | DB/Redis sin puertos publicados; backend solo en `127.0.0.1:8100`; Nginx único punto público | Obligatorio. Incidente real de Redis expuesto en Vacantia; Docker se salta UFW |
 | D27 | Proyecto aislado en `/root/terramova`, frontend estático en `/var/www/terramova` | Confirmado/propuesto 2026-10-21. Sin recursos compartidos con otros proyectos |
+| D28 | Django **5.2 LTS** (no 6.1) | Fase 0, 2026-10-21. Soporte de seguridad hasta abril de 2028; drf-spectacular, django-redis y pytest-django aún no declaran soporte de 6.1. Revisar al salir Django 6.2 LTS |
+| D29 | Python 3.13 gestionado por uv; imagen `python:3.13.16-slim-trixie` | Fase 0. Soportado por todo el stack; el Python 3.12 del sistema no se usa |
+| D30 | Node 22 LTS (`frontend/.nvmrc`) y pnpm 11.17.0 (`packageManager`) | Fase 0. Es lo instalado y lo exige jsdom (≥22.22.2). Node 22 deja de tener soporte en abril de 2027: migrar a Node 24 antes de la Fase 6 |
+| D31 | TypeScript **6.0.3** (no 7.0) | Fase 0. typescript-eslint 8.72 exige `typescript <6.1.0`. Reevaluar cuando lo soporte |
+| D32 | Vite 8.3.4 en lugar de 8.3.5 | Fase 0. 8.3.5 se publicó el mismo día y pnpm 11 aplica una antigüedad mínima de publicación; se prefirió no añadir excepciones |
+| D33 | Reglas de imports del frontend con `no-restricted-imports` (regex), no eslint-plugin-boundaries | Fase 0. La v7 del plugin cambió su API y requiere un resolver TS adicional. Convención resultante: fuera de la carpeta actual se importa con `@/`, nunca con `../`; otras features solo vía `@/features/<nombre>`. Verificado con archivos de prueba que violan cada regla |
+| D34 | shadcn inicializado (preset Nova, base Radix) solo con `components.json`, variables CSS y fuente Geist autoalojada | Fase 0. Se retiraron el botón de ejemplo, radix-ui, lucide-react y el paquete `cn` 0.x (publicado días antes); `cn()` usa clsx + tailwind-merge. Los componentes se añaden en Fase 3 |
+| D35 | Caché con el backend Redis nativo de Django (`RedisCache`), sin django-redis | Fase 0. Cubre caché y coordinación inicial sin otra dependencia |
+| D36 | PostgreSQL 18.6 y Redis 8.6.7 (alpine), versiones exactas | Fase 0. Sin `latest`. El volumen de Postgres 18 se monta en `/var/lib/postgresql` |
+| D37 | detect-secrets (pre-commit + CI) en lugar de gitleaks | Fase 0. Python puro, sin binario adicional. Plan permitía cualquiera de los dos |
+| D38 | Puertos de desarrollo: backend `127.0.0.1:8100` (igual que producción), PostgreSQL `127.0.0.1:5433`, Redis `127.0.0.1:6380` | Fase 0. Siempre loopback; puertos no estándar para no chocar con instancias locales |
+| D39 | Workflow adicional `repo.yml` (pre-commit sobre todo el repo) | Fase 0. Un secreto puede aparecer fuera de `backend/` o `frontend/`; los workflows con filtro de rutas no lo verían |
+| D40 | Sin dependencias de fases futuras en Fase 0 | drf-spectacular, openapi-typescript, factory_boy, MSW, Playwright, Cesium, Motion, Recharts, Gunicorn y supercronic se añaden en su fase. Versiones vigentes consultadas el 2026-10-21 (p. ej. Cesium 1.146.0) |
 
 ## Pendientes antes de habilitar IA
 
