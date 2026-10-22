@@ -1,5 +1,6 @@
 import { lazy, type ReactNode, Suspense } from "react";
 
+import type { MapView } from "@/features/explore/filters/schema";
 import type { GlobeApiRef } from "@/features/explore/globe/controller";
 import type { GlobePoint } from "@/features/explore/globe/points";
 import { DEPTH_CLASSES } from "@/shared/lib/depth";
@@ -14,6 +15,10 @@ interface MapAreaProps {
   onSelect: (id: string) => void;
   reducedMotion: boolean;
   rightInsetPx: number;
+  mode: MapView;
+  onModeChange: (mode: MapView) => void;
+  playback: { cursorMs: number; recentMs: number } | null;
+  onTogglePlayback: () => void;
   apiRef: GlobeApiRef;
   /** La página decide si hay globo (WebGL) y se entera si Cesium falla al crearse. */
   available: boolean;

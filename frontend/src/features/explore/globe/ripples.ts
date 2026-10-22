@@ -60,9 +60,9 @@ export class RippleLayer {
     return this.ripples.length;
   }
 
-  update(points: readonly GlobePoint[], nowMs: number): void {
+  update(points: readonly GlobePoint[], nowMs: number, windowMs?: number): void {
     this.collection.removeAll();
-    this.ripples = selectRipples(points, nowMs).map((point) => ({
+    this.ripples = selectRipples(points, nowMs, windowMs).map((point) => ({
       primitive: this.collection.add({
         position: Cartesian3.fromDegrees(point.longitude, point.latitude, POINT_HEIGHT_M),
         color: TRANSPARENT,

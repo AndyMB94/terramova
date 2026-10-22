@@ -77,7 +77,7 @@ El globo arranca centrado aproximadamente en Sudamérica sin pedir geolocalizaci
 
 ## Analítica y reproducción
 
-Un bloque con periodo y filtros, gráficas etiquetadas con unidades y opción para consultar cifras en tabla (implementado en `/analitica`, D103–D106). Las gráficas entran con una transición corta, sin animar cada actualización. Reproducción con cursor temporal visible, pausa y velocidad. Distinguir "sin eventos registrados en esta consulta" de "sin cobertura o sin datos".
+Un bloque con periodo y filtros, gráficas etiquetadas con unidades y opción para consultar cifras en tabla (implementado en `/analitica`, D103–D106). Las gráficas entran con una transición corta, sin animar cada actualización. Reproducción con cursor temporal visible, pausa y velocidad (implementada en el globo, D108). Distinguir "sin eventos registrados en esta consulta" de "sin cobertura o sin datos".
 
 ## Adaptación móvil y accesibilidad
 

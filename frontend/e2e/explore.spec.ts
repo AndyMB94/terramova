@@ -35,6 +35,14 @@ const WINDOW = { start: "2026-10-15T04:33:36Z", end: "2026-10-22T04:33:36Z" };
 /** Simula la API con datos ficticios y registra las consultas a la lista. */
 async function mockApi(page: Page, options: { failList?: boolean } = {}) {
   const listRequests: URL[] = [];
+  // Red de seguridad: Playwright prueba primero las rutas registradas después, así que
+  // esta solo responde a lo que nadie simula. Ninguna prueba debe llegar a un backend real.
+  await page.route("**/api/**", (route) =>
+    route.fulfill({
+      status: 500,
+      json: { code: "unmocked", message: `Sin simulacro: ${route.request().url()}` },
+    }),
+  );
   await page.route("**/api/v1/meta/", (route) => route.fulfill({ json: meta() }));
   await page.route("**/api/v1/earthquakes/?*", (route) => {
     const url = new URL(route.request().url());
@@ -59,7 +67,9 @@ async function mockApi(page: Page, options: { failList?: boolean } = {}) {
   await page.route(/\/api\/v1\/analytics\/timeline\//, (route) =>
     route.fulfill({ json: timeline() }),
   );
-  await page.route("**/api/v1/earthquakes/geojson/?*", (route) => {
+  // Sin filtros el mapa se pide sin parámetros: un patrón con "?" no lo atraparía y la
+  // petición llegaría al backend real (D109).
+  await page.route(/\/api\/v1\/earthquakes\/geojson\//, (route) => {
     const url = new URL(route.request().url());
     const events = url.searchParams.get("event_type") === "all" ? [...EVENTS, BLAST] : EVENTS;
     return route.fulfill({
@@ -337,6 +347,68 @@ test.describe("globo (WebGL por software)", () => {
     await expect(globe(page)).toHaveAttribute("data-spin", "off");
   });
 
+  test("reproducción: el globo muestra lo ocurrido hasta el cursor; la lista sigue completa", async ({
+    page,
+  }) => {
+    test.slow();
+    await mockApi(page);
+    await page.goto("/");
+    await expect(globe(page)).toHaveAttribute("data-points", String(EVENTS.length), {
+      timeout: 20_000,
+    });
+
+    await page.getByRole("button", { name: "Reproducir periodo" }).click();
+    // Los eventos de prueba ocurren el 20 oct: al empezar (15 oct) aún no hay ninguno.
+    await expect(globe(page)).toHaveAttribute("data-playback", "on");
+    await expect(globe(page)).toHaveAttribute("data-points", "0");
+    await expect(eventList(page).getByText("120 km al NE de Ficticia, Testland")).toBeVisible();
+
+    const bar = page.getByRole("region", { name: "Reproducción temporal" });
+    await bar.getByRole("button", { name: "×4" }).click();
+    await expect(globe(page)).toHaveAttribute("data-points", String(EVENTS.length), {
+      timeout: 15_000,
+    });
+    await expect(bar.getByRole("button", { name: "Reproducir" })).toBeVisible({ timeout: 10_000 });
+
+    await page.getByRole("button", { name: "Cerrar la reproducción" }).click();
+    await expect(globe(page)).toHaveAttribute("data-playback", "off");
+  });
+
+  test("reproducción con movimiento reducido: no arranca sola", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await mockApi(page);
+    await page.goto("/");
+    await expect(globe(page)).toHaveAttribute("data-points", String(EVENTS.length), {
+      timeout: 20_000,
+    });
+
+    await page.getByRole("button", { name: "Reproducir periodo" }).click();
+
+    const bar = page.getByRole("region", { name: "Reproducción temporal" });
+    await expect(bar.getByRole("button", { name: "Reproducir" })).toBeVisible();
+    await page.waitForTimeout(1_500);
+    await expect(globe(page)).toHaveAttribute("data-points", "0");
+  });
+
+  test("un enlace con filtros, evento y 2D se restaura en otro navegador", async ({ browser }) => {
+    const context = await browser.newContext();
+    const other = await context.newPage();
+    await mockApi(other);
+    await other.goto(`/?min_magnitude=4&view=2d&event=${PANAMA.id}`);
+
+    await expect(
+      other.getByRole("region", { name: "192 km al S de Burica, Panama" }),
+    ).toBeVisible();
+    await expect(other.getByRole("button", { name: "Mapa 2D" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    const filtersButton = other.getByRole("button", { name: /^Filtros/ });
+    if (await filtersButton.isVisible()) await filtersButton.click();
+    await expect(other.getByLabel("Mínima").first()).toHaveValue("4");
+    await context.close();
+  });
+
   test("calidad: la automática baja si los fps caen y el selector la fuerza", async ({ page }) => {
     // Esperan la inactividad de 8 s: más que el límite habitual de 30 s.
     test.slow();
@@ -399,4 +471,25 @@ test("analítica: desde Explorar conserva los filtros y cada gráfica se lee com
     .getByRole("link", { name: "Explorar" })
     .click();
   await expect(page).toHaveURL(/\/\?min_magnitude=4/);
+});
+
+test("favoritos: se guardan, sobreviven a la recarga y se borran con confirmación", async ({
+  page,
+}) => {
+  await mockApi(page);
+  await page.goto(`/?event=${PANAMA.id}`);
+  const detail = page.getByRole("region", { name: "192 km al S de Burica, Panama" });
+  await detail.getByRole("button", { name: "Guardar en favoritos" }).click();
+  await expect(page.getByRole("tab", { name: "Favoritos (1)" })).toBeVisible();
+
+  await page.reload();
+  const tab = page.getByRole("tab", { name: "Favoritos (1)" });
+  await tab.click();
+  await expect(
+    page.getByRole("tabpanel").getByRole("button", { name: /^192 km al S de Burica/ }),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Borrar todos" }).click();
+  await page.getByRole("button", { name: "Sí, borrar todos" }).click();
+  await expect(page.getByRole("tab", { name: "Favoritos (0)" })).toBeVisible();
 });

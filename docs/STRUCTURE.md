@@ -302,3 +302,9 @@ Solo esto; el resto llega con su fase.
 - `frontend/src/features/analytics/`: `AnalyticsPage.tsx` (cargada con `React.lazy` desde `index.ts`), `SummaryCards.tsx` (total, magnitud máxima con enlace al globo y comparación), `charts/` (`ChartCard` con alternativa en tabla, `BarChartFrame` sobre Recharts, `TimelineCard`, `DistributionCards`), `api/queries.ts` y `labels.ts` (textos y fechas UTC, puro y probado).
 - `features/explore/index.ts` exporta lo compartido (D105); `filters/chips.ts` sale de `ExplorePage`. Ruta `/analitica` en `app/router.tsx` (D103).
 - Pruebas: `src/app/analytics.test.tsx` (MSW con datos ficticios de analítica en `test/msw/fixtures.ts`) y un recorrido E2E en los tres tamaños.
+
+### Resultado real de la Fase 4 · PR 3 (reproducción, URL y favoritos)
+
+- `frontend/src/features/playback/`: `timeline.ts` (avance del cursor, filtro por hora, margen de ondas y formato UTC; puro y probado), `usePlayback.ts` (estado y avance a 10 pasos/s; se cierra sola si cambia la ventana) y `PlaybackBar.tsx`.
+- `frontend/src/features/favorites/`: `storage.ts` (formato versionado con zod, límite y alta; puro y probado), `useFavorites.ts` (`useSyncExternalStore`, sincronizado entre pestañas), `FavoriteButton.tsx` y `FavoritesList.tsx`.
+- `features/explore/`: `view` en el esquema de la URL, `list/ListTabs.tsx` y `list/tabs.ts`; el globo recibe el modo, la reproducción y expone `data-points`/`data-playback` para las pruebas. `shared/lib/storage.ts`: `tryWritePreference` e `isStorageAvailable`.

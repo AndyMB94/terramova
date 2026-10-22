@@ -34,3 +34,25 @@ export function writeSession(key: string, value: string): void {
     // Sin almacenamiento de sesión se repetiría la intro al recargar; no es un error.
   }
 }
+
+/** Escribe y dice si funcionó: los favoritos necesitan saberlo (cuota llena, bloqueo). */
+export function tryWritePreference(key: string, value: string): boolean {
+  try {
+    window.localStorage.setItem(key, value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Si el navegador permite guardar datos (no lo permite en algunos modos privados). */
+export function isStorageAvailable(): boolean {
+  const probe = "terramova:probe";
+  try {
+    window.localStorage.setItem(probe, "1");
+    window.localStorage.removeItem(probe);
+    return true;
+  } catch {
+    return false;
+  }
+}
