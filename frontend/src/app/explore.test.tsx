@@ -178,6 +178,24 @@ describe("Explorar", () => {
   });
 });
 
+describe("Globo", () => {
+  it("sin WebGL avisa, deshabilita el filtro de área y la lista sigue disponible", async () => {
+    renderRoutes(routes);
+
+    expect(screen.getByText("Este navegador no puede mostrar el globo")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Vista del mapa" })).toBeDisabled();
+    expect(await list().findByText("6,1")).toBeInTheDocument();
+  });
+
+  it("un bbox compartido en la URL se envía a la lista y al mapa", async () => {
+    renderRoutes(routes, "/?bbox=-82,-56,-34,13");
+
+    await list().findByText("6,1");
+    expect(requests.at(-1)?.searchParams.get("bbox")).toBe("-82,-56,-34,13");
+    expect(screen.getAllByText("Área del mapa").length).toBeGreaterThan(0);
+  });
+});
+
 describe("Frescura de los datos", () => {
   it("respeta is_stale del servidor aunque la sincronización parezca reciente", async () => {
     server.use(http.get("*/api/v1/meta/", () => HttpResponse.json(meta({ is_stale: true }))));

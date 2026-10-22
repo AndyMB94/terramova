@@ -20,6 +20,10 @@ if (!window.matchMedia) {
     }) as MediaQueryList;
 }
 
+// jsdom no implementa canvas: sin WebGL, la interfaz debe mostrar la lista y un aviso.
+HTMLCanvasElement.prototype.getContext = (() =>
+  null) as typeof HTMLCanvasElement.prototype.getContext;
+
 // Cualquier petición sin manejador falla el test: nada sale a la red real.
 beforeAll(() => server.listen({ onUnhandledFrame: "error" }));
 

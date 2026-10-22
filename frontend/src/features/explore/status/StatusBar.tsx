@@ -1,17 +1,19 @@
 import { Link } from "react-router";
 
-import type { Meta } from "@/features/explore/api/queries";
-import { formatDateRange, formatRelative } from "@/shared/lib/format";
+import type { MapPoints, Meta } from "@/features/explore/api/queries";
+import { formatCount, formatDateRange, formatRelative } from "@/shared/lib/format";
 import { cn } from "@/shared/lib/utils";
 
 interface StatusBarProps {
   meta: Meta | undefined;
   status: "pending" | "error" | "success";
+  /** Metadatos del GeoJSON del mapa: avisa si se truncó (docs/DATA_API.md). */
+  map?: MapPoints["metadata"];
   now?: Date;
 }
 
 /** Frescura y cobertura de los datos: siempre visibles (docs/UI_UX.md, Estados obligatorios). */
-export function StatusBar({ meta, status, now = new Date() }: StatusBarProps) {
+export function StatusBar({ meta, status, map, now = new Date() }: StatusBarProps) {
   const lastSync = meta?.last_successful_sync_at;
   const stale =
     meta !== undefined &&
@@ -52,6 +54,13 @@ export function StatusBar({ meta, status, now = new Date() }: StatusBarProps) {
               </span>
             </span>
           </>
+        ) : null}
+        {map?.truncated ? (
+          <span className="text-tertiary">
+            Mapa: <span className="tabular font-mono">{formatCount(map.returned)}</span> de{" "}
+            <span className="tabular font-mono">{formatCount(map.total_matching)}</span> eventos
+            (los de mayor magnitud); la lista los incluye todos
+          </span>
         ) : null}
       </div>
       <Link

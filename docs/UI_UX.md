@@ -37,6 +37,7 @@ Reglas técnicas:
 - No animar al mismo tiempo vuelo de cámara, giro y gráficas.
 - Cesium con `requestRenderMode`: renderiza solo cuando algo cambia; las animaciones activas piden render explícitamente. Ahorra batería y CPU con el globo quieto.
 - Presupuesto: ~60 fps en el equipo de escritorio de referencia, ≥ 30 fps en un móvil medio documentado. Si se cae por debajo, pasar automáticamente a calidad baja (sin ondas ni atmósfera) y ofrecer selector de calidad.
+  - Medido en el equipo de referencia (D84): ~20 fps con todo activado durante animaciones; la calidad baja queda definida como sin MSAA, sin atmósfera y resolución al 75 % (60 fps, D85). Sin capa nocturna en v0.1.0 (D86).
 - Herramientas: **Motion** (motion.dev, antes Framer Motion) para la interfaz React; API de cámara de Cesium (`flyTo`, `morphTo2D/3D`) para el globo; ondas con primitives o un material/shader ligero, medido antes de adoptarlo.
 - Respetar `prefers-reduced-motion` **y** ofrecer un interruptor propio en la interfaz, porque muchos usuarios no conocen la opción del sistema.
 

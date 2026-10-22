@@ -15,6 +15,7 @@ export interface FilterQuery {
   min_depth_km?: number;
   max_depth_km?: number;
   event_type?: "all";
+  bbox?: string;
 }
 
 export interface ListQuery extends FilterQuery {
@@ -44,6 +45,7 @@ export function toFilterQuery(
     ...(filters.min_depth_km !== undefined ? { min_depth_km: filters.min_depth_km } : {}),
     ...(filters.max_depth_km !== undefined ? { max_depth_km: filters.max_depth_km } : {}),
     ...(filters.types === "all" ? { event_type: "all" as const } : {}),
+    ...(filters.bbox ? { bbox: filters.bbox } : {}),
   };
 }
 

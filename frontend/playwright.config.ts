@@ -16,6 +16,10 @@ export default defineConfig({
     locale: "es-ES",
     timezoneId: "America/Lima",
     trace: "retain-on-failure",
+    // Sin GPU (CI, WSL): WebGL por software para que el globo Cesium se dibuje.
+    launchOptions: {
+      args: ["--enable-unsafe-swiftshader", "--use-angle=swiftshader", "--ignore-gpu-blocklist"],
+    },
   },
   projects: [
     {

@@ -278,3 +278,10 @@ Solo esto; el resto llega con su fase.
 - `shared/`: `api/errors.ts` (`ApiRequestError`, mensajes y política de reintento), `hooks/` (`preferences.tsx` y `preferences-context.ts` para tema y movimiento reducido; `useMediaQuery`), `lib/` (`format.ts`, `depth.ts`, `storage.ts`), `ui/` (`Button`, `DepthDot`), `styles/tokens.css` (tokens aprobados, tema claro y movimiento reducido).
 - Pruebas: `src/test/msw/` (manejadores y datos ficticios etiquetados), `src/test/render.tsx`, Vitest junto a cada módulo; `e2e/` y `playwright.config.ts` (build + `vite preview`, API simulada con `page.route`).
 - `.github/workflows/e2e.yml` y `make e2e`.
+
+### Resultado real de la Fase 3 · PR 2 (globo)
+
+- `features/explore/globe/`: `cesium-base.ts` (fija `CESIUM_BASE_URL` antes de cargar Cesium), `viewer.ts` (crea el `CesiumWidget` con teselas propias, fronteras y sin ion; estilos del contenedor), `points.ts` (`EventPointLayer` con `PointPrimitiveCollection` incremental por id), `geometry.ts` (tamaño de punto y área visible → `bbox`, puro y probado), `controller.ts` (API mínima del globo para otras partes de la página), `webgl.ts` y `CesiumGlobe.tsx` (componente cargado con `React.lazy`: selección, centrado, 3D/2D, zoom, teclado y créditos).
+- `features/explore/lab/PerformanceLab.tsx`: laboratorio de fps, enlazado solo en desarrollo.
+- `frontend/public/imagery/blue-marble/{z}/{x}/{y}.jpg` y `frontend/public/geo/borders-110m.geojson`, generados por `infra/scripts/build_globe_assets.py`.
+- `map/MapArea.tsx` decide entre globo y aviso sin WebGL según la disponibilidad que fija la página.
