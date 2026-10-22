@@ -23,6 +23,9 @@ import { useMediaQuery } from "@/shared/hooks/useMediaQuery";
 import { formatDateRange } from "@/shared/lib/format";
 import { cn } from "@/shared/lib/utils";
 
+// La ficha flotante en escritorio: 340 px de ancho a 72 px del borde derecho del mapa.
+const DETAIL_INSET_PX = 340 + 72;
+
 const PERIOD_CHIPS: Record<ExploreFilters["period"], string> = {
   "24h": "Últimas 24 h",
   "7d": "Últimos 7 días",
@@ -52,6 +55,7 @@ export function ExplorePage() {
         latitude: feature.geometry.coordinates[1] ?? 0,
         magnitude: feature.properties.magnitude,
         depthKm: feature.properties.depth_km,
+        occurredAtMs: Date.parse(feature.properties.occurred_at),
       })),
     [map.data],
   );
@@ -163,6 +167,7 @@ export function ExplorePage() {
             focus={focus}
             onSelect={selectFromGlobe}
             reducedMotion={reducedMotion}
+            rightInsetPx={wide && filters.event ? DETAIL_INSET_PX : 0}
             apiRef={globeApi}
             available={mapAvailable}
             onUnavailable={() => setMapAvailable(false)}

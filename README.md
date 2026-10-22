@@ -58,7 +58,7 @@ make e2e        # recorridos E2E con Playwright en 1440, 768 y 360 px (API simul
 
 El globo usa recursos propios en `frontend/public/` (teselas NASA Blue Marble y fronteras Natural Earth), ya versionados. Para regenerarlos desde las fuentes oficiales (hash verificado): `uv run --no-project --with pillow==12.0.0 python infra/scripts/build_globe_assets.py --cache ~/.cache/terramova`.
 
-En desarrollo, `http://127.0.0.1:5173/laboratorio/rendimiento` mide los fps del globo con 1.000, 5.000 o 10.000 puntos sintéticos.
+En desarrollo, `http://127.0.0.1:5173/laboratorio/rendimiento` mide los fps del globo con 1.000, 5.000 o 10.000 puntos sintéticos. En la página principal, bajo el selector de calidad, un contador muestra los fps medidos durante las animaciones (solo en desarrollo).
 
 Para `make e2e` hace falta, una sola vez, el navegador de Playwright: `pnpm --dir frontend exec playwright install chromium` y, en WSL o Linux sin librerías gráficas, `sudo pnpm --dir frontend exec playwright install-deps chromium`.
 

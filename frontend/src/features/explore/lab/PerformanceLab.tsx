@@ -214,6 +214,8 @@ function syntheticPoints(count: number): GlobePoint[] {
     latitude: (Math.asin(2 * random() - 1) * 180) / Math.PI,
     magnitude: 1 + random() * 6,
     depthKm: random() * 650,
+    // Antiguos a propósito: el laboratorio mide los puntos, no las ondas.
+    occurredAtMs: 0,
   }));
 }
 

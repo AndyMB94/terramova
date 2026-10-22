@@ -109,3 +109,28 @@
   color: inherit;
   text-decoration: underline;
 }
+
+/* Entrada de paneles (ficha del evento). Con movimiento reducido las duraciones son 0. */
+@keyframes terramova-panel-in-y {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes terramova-panel-in-x {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}
+
+.animate-panel-in {
+  animation: terramova-panel-in-y var(--duration-base) var(--ease-out);
+}
+
+@media (min-width: 1024px) {
+  .animate-panel-in {
+    animation-name: terramova-panel-in-x;
+  }
+}
