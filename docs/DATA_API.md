@@ -1,6 +1,6 @@
 # Datos, sincronización y API
 
-Modelos y sincronización implementados en Fase 1; API pública de eventos y `meta` implementada en Fase 2 (analítica y resúmenes siguen propuestos). UTC en almacenamiento y API; intervalos `[start, end)` para evitar solapamientos. Unidades explícitas.
+Modelos y sincronización implementados en Fase 1; API pública de eventos y `meta` implementada en Fase 2; analítica (`summary`, `timeline`) en la Fase 4 (resúmenes siguen propuestos). UTC en almacenamiento y API; intervalos `[start, end)` para evitar solapamientos. Unidades explícitas.
 
 ## Origen
 
@@ -44,8 +44,8 @@ La descarga ocurre fuera de transacción y el upsert del lote se aplica en una s
 | `GET /api/v1/earthquakes/` | Lista paginada de eventos (implementada) |
 | `GET /api/v1/earthquakes/{id}/` | Detalle por UUID interno (implementada) |
 | `GET /api/v1/earthquakes/geojson/` | Puntos acotados para mapa (implementada) |
-| `GET /api/v1/analytics/summary/` | Conteo, rango y distribuciones |
-| `GET /api/v1/analytics/timeline/` | Eventos agregados por hora/día |
+| `GET /api/v1/analytics/summary/` | Conteo, máximo, distribuciones por magnitud y profundidad y comparación con la ventana anterior (implementada, Fase 4) |
+| `GET /api/v1/analytics/timeline/` | Eventos por hora (ventanas ≤ 48 h) o por día, con intervalos vacíos (implementada, Fase 4) |
 | `GET /api/v1/activity-summaries/latest/` | Leer el resumen ya guardado o estado no disponible |
 | `GET /api/v1/meta/` | Fuente, cobertura, `last_successful_sync_at`, `is_stale`, versión de datos y límites (implementada) |
 | `GET /health/live/` | Salud del proceso, sin secretos |
@@ -63,6 +63,7 @@ Desde la Fase 2, la fuente de verdad del contrato es `backend/openapi/schema.yam
 - Lista: 50 por página por defecto, 100 máximo. **Paginación por cursor (keyset propio, D53)** sobre `(occurred_at, id)` o `(magnitude, id)` descendente, nulos al final: con eventos nuevos cada pocos minutos, la paginación por número de página o por desplazamiento produce duplicados y saltos. Respuesta `{results, next_cursor, window}`.
 - Mapa: GeoJSON estándar (D52), máximo 5.000 puntos. Si se excede, se conservan los de mayor magnitud (D50) y `metadata` incluye `truncated`, `total_matching`, `returned`, `limit` y `selection`. Propiedades: magnitud, profundidad, hora y lugar. Números redondeados (D55).
 - Estadísticas se calculan sobre el conjunto filtrado completo, no sobre una página ni sobre los puntos truncados.
+- Analítica (Fase 4): mismos parámetros, validación, caché y límites que los eventos. Bandas de magnitud de 1 unidad `[min, max)` (`lt1` … `7plus`) y clases de profundidad iguales a la leyenda del mapa (0–35, 35–70, 70–150, 150–300, 300+ km; la primera incluye profundidades negativas); los nulos se cuentan aparte (`magnitude_unknown`, `depth_unknown`). La línea temporal rellena con 0 los intervalos sin eventos y marca `is_partial` en los extremos. La comparación usa la ventana anterior de igual duración con los mismos filtros y solo se ofrece si la cobertura la incluye entera (`reason: outside_coverage` si no). `window_clipped` avisa si la cobertura recortó el inicio pedido.
 - Validar rangos, valores finitos, longitudes y bbox; tratar cruce del antimeridiano explícitamente (west > east como dos intervalos) y probarlo.
 - Límites por IP (120/min) y globales (3000/min) configurables (D57); pruebas de carga ajustarán valores antes de publicar. `statement_timeout` de 15 s (D59).
 

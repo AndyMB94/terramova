@@ -71,13 +71,13 @@ Aceptación: un visitante explora eventos reales sin cuenta, entiende los datos 
 
 Depende de Fase 3.
 
-- [ ] Agregados deterministas y timeline con filtros compartidos.
+- [ ] Agregados deterministas y timeline con filtros compartidos. (PR 1: API `summary` y `timeline` con los mismos filtros; falta la interfaz.)
 - [ ] Gráficas con unidades, leyendas y alternativa tabular.
-- [ ] Comparación de ventanas iguales y advertencia de cobertura.
+- [ ] Comparación de ventanas iguales y advertencia de cobertura. (PR 1: la API compara y explica `outside_coverage`/`window_clipped`; falta mostrarlo.)
 - [ ] Reproducción play/pausa, velocidad y cursor temporal; no cambia los datos originales.
 - [ ] URL compartible que restaura filtros/vista/selección.
 - [ ] Favoritos locales y acción para borrarlos.
-- [ ] Pruebas de consistencia entre estadísticas y conjunto completo filtrado.
+- [x] Pruebas de consistencia entre estadísticas y conjunto completo filtrado. (D102.)
 
 Aceptación: estadísticas no dependen de la página de lista ni del límite del mapa; una URL funciona en otro navegador; reproducción respetuosa de movimiento reducido.
 
@@ -148,3 +148,4 @@ Aceptación: demo HTTPS reproducible, acceso admin protegido, DB/Redis no públi
 | 2026-10-22 | Fase 3 · PR 3 · CI | PR #11 fusionado en `main` (merge `2aaa412`). Workflows `frontend`, `repo` y `e2e` (con las pruebas de movimiento) en verde en el PR (`9fe009e`) y en `main` (`2aaa412`). En `main`, la instalación de Chromium en el runner tardó 11,5 min (las pruebas, 1,6 min): lentitud externa, no del código; si se repite, conviene cachear los navegadores de Playwright en CI. **PR 3 de la Fase 3 completo** | Para cerrar la Fase 3: capturas y grabación breve de la demo, y medición en un móvil medio |
 | 2026-10-22 | Fase 3 · cierre (rama local `fix/creditos-cierre-fase-3`, sin commit) | Demo revisada: 7 capturas (1440/768/360 px, ficha, 2D y tema claro) y vídeo de 1 min del propietario, adjuntos al PR (D98). Las capturas destaparon créditos ilegibles en tema claro y en 2D, corregido con fondo propio (D96); lint, formato y pruebas de créditos en verde. Medición en móvil aplazada a la Fase 6 (D97) | CI pendiente; con ella en verde, Fase 3 completa |
 | 2026-10-22 | Fase 3 · cierre · CI | PR #13 fusionado en `main` (merge `785f16a`), con el vídeo y las 7 capturas de la demo adjuntos. Workflows `frontend`, `repo` y `e2e` en verde en el PR (`defafbd`) y en `main` (`785f16a`). Criterio de aceptación cumplido: exploración de eventos reales sin cuenta, datos explicados, lista usable con teclado, sin mapas de demo ni IA pagada, capturas y grabación revisadas. **Fase 3 completa (v0.1.0)**; pendiente aplazado a la Fase 6: medición en móvil (D97) | Comenzar Fase 4 |
+| 2026-10-22 | Fase 4 · PR 1 (rama local `feat/analytics-api`, sin commit) | API de analítica: `summary` (conteo, máximo, bandas de magnitud, clases de profundidad, nulos aparte, comparación con la ventana anterior solo si está cubierta) y `timeline` (por hora/día con ceros y extremos parciales), con los filtros, caché y límites de la API de eventos. 23 pruebas nuevas (consistencia con lista paginada y mapa truncado), 6 mutaciones detectadas, 10 contratos de import-linter. Con datos reales: 7 días = 1.927 eventos en resumen, línea temporal y mapa; 30 días sin comparación por cobertura. Decisiones D99–D102 | CI pendiente; sigue el PR 2 (página de Analítica) |
