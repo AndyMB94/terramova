@@ -12,7 +12,7 @@ Producto geográfico moderno: el planeta domina la pantalla y la interfaz se man
 - **Globo**: atmósfera de Cesium (sky/ground atmosphere), iluminación día/noche opcional con el terminador solar real e imágenes nocturnas (Black Marble) en el lado oscuro si el rendimiento lo permite. Fondo espacial sobrio, sin campo de estrellas animado ni partículas.
 - **Imágenes base sin costo**: NASA Blue Marble (día) y Black Marble (noche), de dominio público, servidas como teselas estáticas autoalojadas. Verificar resolución, peso y créditos. Imágenes o terreno comerciales solo con proveedor y presupuesto verificados.
 
-Definir tokens de color, espacio, radio, sombra, tipografía y **movimiento** antes de construir pantallas, en `frontend/src/shared/styles/tokens.css`. Evitar neón excesivo, tarjetas de relleno y efectos que impidan leer.
+Definir tokens de color, espacio, radio, sombra, tipografía y **movimiento** antes de construir pantallas, en `frontend/src/shared/styles/tokens.css`. Implementado en la Fase 3 a partir de la maqueta aprobada (D63); la escala de profundidad se ajustó para cumplir 3:1 en sus cinco tonos (D64). Evitar neón excesivo, tarjetas de relleno y efectos que impidan leer.
 
 ## Sistema de movimiento
 

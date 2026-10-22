@@ -10,7 +10,7 @@ BACKEND := cd backend &&
 FRONTEND := pnpm --dir frontend
 
 .PHONY: help env setup up down logs ps migrate sync web schema contract \
-	lint lint-backend lint-frontend fmt test test-backend test-frontend build check precommit
+	lint lint-backend lint-frontend fmt test test-backend test-frontend e2e build check precommit
 
 help: ## Lista los objetivos disponibles
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
@@ -84,6 +84,9 @@ test-backend:
 
 test-frontend:
 	$(FRONTEND) test
+
+e2e: ## Recorridos E2E con Playwright (requiere `pnpm exec playwright install chromium`)
+	$(FRONTEND) exec playwright test
 
 build: ## Compila el frontend
 	$(FRONTEND) build

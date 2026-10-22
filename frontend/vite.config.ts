@@ -24,6 +24,8 @@ export default defineConfig({
     },
   },
   test: {
+    // Solo pruebas unitarias y de integración; las E2E de e2e/ las ejecuta Playwright.
+    include: ["src/**/*.test.{ts,tsx}"],
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
     css: false,

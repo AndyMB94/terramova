@@ -53,17 +53,17 @@ Aceptación: consultas reproducibles y documentadas; ninguna consulta sin rango/
 
 Depende de Fase 2. UI con fixtures puede adelantarse en una rama si el contrato ya está acordado.
 
-- [ ] Moodboard, wireframes y tokens (incluidos tokens de movimiento) según el proceso de UI_UX.md.
-- [ ] Tokens de diseño, shell responsive y componentes accesibles.
+- [x] Moodboard, wireframes y tokens (incluidos tokens de movimiento) según el proceso de UI_UX.md. (Maqueta navegable a 360/768/1440 px con tokens, aprobada por el propietario; sin moodboard de capturas de terceros.)
+- [x] Tokens de diseño, shell responsive y componentes accesibles.
 - [ ] Spike de Cesium: 3D/2D, assets, geometría publicada, imágenes Blue/Black Marble y atribución.
 - [ ] Puntos con `PointPrimitiveCollection`, `requestRenderMode` y medición con 1.000/5.000 puntos.
-- [ ] Integración real con API usando TanStack Query.
-- [ ] Marcadores, lista, selección y panel de detalle sincronizados.
-- [ ] Filtros, fuente y última actualización visibles.
+- [x] Integración real con API usando TanStack Query.
+- [ ] Marcadores, lista, selección y panel de detalle sincronizados. (PR 1: lista, selección y ficha sincronizadas con la URL; faltan los marcadores del globo.)
+- [x] Filtros, fuente y última actualización visibles.
 - [ ] Sistema de movimiento de UI_UX.md: intro, giro en inactividad con pausa, ondas en eventos recientes, transiciones de selección y paneles; interruptor de movimiento reducido y modo de calidad baja.
 - [ ] Fallback de lista si WebGL falla; sin bucles de render ni recursos filtrados.
-- [ ] Estados de carga/error/vacío y datos obsoletos.
-- [ ] E2E del recorrido principal y revisión a 360/768/1440 px.
+- [x] Estados de carga/error/vacío y datos obsoletos.
+- [ ] E2E del recorrido principal y revisión a 360/768/1440 px. (PR 1: 24 recorridos E2E en los tres tamaños y capturas revisadas; falta incluir el globo.)
 
 Aceptación: un visitante explora eventos reales sin cuenta, entiende los datos y puede usar lista con teclado. Sin dependencia de mapas de demo ni IA pagada. Capturas y grabación breve de la demo para revisión.
 
@@ -139,3 +139,4 @@ Aceptación: demo HTTPS reproducible, acceso admin protegido, DB/Redis no públi
 | 2026-10-22 | Fase 1 · CI y seguimiento | PR #3 fusionado en `main` (merge `f945b69`). Workflows `backend` y `repo` en verde en el PR (`66b6a01`) y en `main` (`f945b69`); `frontend` no aplica (sin cambios en `frontend/`). Sincronización real 10 min después: `day` creó 4 eventos nuevos sin duplicar 184 existentes; un evento que salió de la ventana de 24 h no se borró. Las correcciones de USGS (actualizaciones) están cubiertas por tests y quedan por observar en vivo cuando corra el scheduler. **Fase 1 completa** | Comenzar Fase 2 |
 | 2026-10-22 | Fase 2 (rama local `feat/public-api`, sin commit) | `make check` en verde: 133 tests pytest (rangos inválidos, fechas sin zona, antimeridiano, límites de página y de puntos, truncado por magnitud, 404, 429 con `Retry-After`, 304, ETag que cambia con datos y filtros, caché servida hasta que cambia la versión, Redis caído sin 500 y con límite local, paginación estable con inserciones por fecha y por magnitud con empates y nulos, cobertura con huecos y 304, número de consultas ≤ 5); 4 tests Vitest; 11 mutaciones de la lógica nueva detectadas; 6 contratos de import-linter; `make contract` detecta un contrato desactualizado; actionlint sin errores. Prueba manual con 10 085 eventos reales: GeoJSON de 7 días 1 896 puntos en 73 ms (104 KB gzip), 30 días truncado a 5 000 (279 KB gzip). Una sincronización real actualizó 3 eventos: primera corrección de USGS observada en vivo. Decisiones D49–D60 | CI pendiente de ejecutarse en GitHub. Fase 3 tras revisión y commit |
 | 2026-10-22 | Fase 2 · CI | PR #5 fusionado en `main` (merge `abf2a0b`). Primera ejecución de `contract.yml` falló (`3d6d72f`): el hook de Prettier de pre-commit había reformateado `schema.d.ts` porque corre desde la raíz y no aplica `frontend/.prettierignore` (D61). Corregido en `eb9d37d` excluyendo el archivo en el hook; reproducido antes en una copia limpia sin `.env`. Con la corrección, `backend`, `frontend`, `repo` y `contract` en verde en el PR y en `main`. **Fase 2 completa** | Comenzar Fase 3 |
+| 2026-10-22 | Fase 3 · PR 1 (rama local `feat/explorer-ui`, sin commit) | Maqueta aprobada (D63) y tokens en `tokens.css`. Interfaz con datos reales sin globo: filtros en la URL, lista por cursor, ficha, frescura y cobertura, tema claro y movimiento reducido. Vitest: 38 tests con MSW (7 mutaciones; 1 no detectada que motivó 3 tests nuevos de frescura). Playwright: 24 recorridos en 1440/768/360 px, repetidos 72 veces sin fallos tras corregir un parpadeo de controles (D70). Comprobación manual contra la API real con 10 000+ eventos: lista, ficha y frescura correctas en escritorio y móvil, sin errores en consola. Fallos reales hallados y corregidos: `fetch` capturado por openapi-fetch, filtros que perdían la magnitud al serializar, opción renombrada de MSW 3 (D71). Decisiones D62–D74 | CI pendiente de ejecutarse en GitHub. Sigue el PR 2 (globo Cesium) |

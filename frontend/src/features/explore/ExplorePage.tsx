@@ -1,16 +1,168 @@
-// Pantalla inicial de la Fase 0. No muestra datos sísmicos: el globo, la lista y
-// la conexión con la API llegan en las Fases 2–3.
+import { SlidersHorizontal } from "lucide-react";
+import { useCallback, useId, useMemo, useState } from "react";
+
+import { useEarthquake, useEarthquakeList, useMeta } from "@/features/explore/api/queries";
+import { EventDetail } from "@/features/explore/detail/EventDetail";
+import { toListQuery } from "@/features/explore/filters/api-query";
+import { FilterPanel } from "@/features/explore/filters/FilterPanel";
+import type { ExploreFilters } from "@/features/explore/filters/schema";
+import { useExploreFilters } from "@/features/explore/filters/useExploreFilters";
+import { EventList } from "@/features/explore/list/EventList";
+import { MapArea } from "@/features/explore/map/MapArea";
+import { StatusBar } from "@/features/explore/status/StatusBar";
+import { useMediaQuery } from "@/shared/hooks/useMediaQuery";
+import { formatDateRange } from "@/shared/lib/format";
+import { cn } from "@/shared/lib/utils";
+
+const PERIOD_CHIPS: Record<ExploreFilters["period"], string> = {
+  "24h": "Últimas 24 h",
+  "7d": "Últimos 7 días",
+  "30d": "Últimos 30 días",
+};
+
 export function ExplorePage() {
+  const { filters, update, reset } = useExploreFilters();
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const filtersPanelId = useId();
+
+  const meta = useMeta();
+  const coverageEnd = meta.data?.coverage?.end;
+  const listQuery = useMemo(() => toListQuery(filters, coverageEnd), [filters, coverageEnd]);
+  const list = useEarthquakeList(listQuery);
+  const events = useMemo(() => list.data?.pages.flatMap((page) => page.results) ?? [], [list.data]);
+  const listWindow = list.data?.pages[0]?.window ?? null;
+  const wide = useMediaQuery("(min-width: 1024px)");
+
+  const selected = useEarthquake(filters.event);
+
+  const select = useCallback((id: string) => update({ event: id }), [update]);
+  const closeDetail = useCallback(() => {
+    const id = filters.event;
+    update({ event: undefined });
+    // Devuelve el foco a la fila del evento para no perder la posición con teclado.
+    if (id) requestAnimationFrame(() => document.getElementById(`event-${id}`)?.focus());
+  }, [filters.event, update]);
+
+  const chips = activeChips(filters);
+  // Sin consulta (periodo que necesita la cobertura y aún no llega) la lista espera a meta.
+  const listStatus = listQuery === null ? (meta.isError ? "error" : "pending") : list.status;
+
+  const detail = filters.event ? (
+    <EventDetail
+      event={selected.data}
+      status={selected.status}
+      error={selected.error}
+      onClose={closeDetail}
+      className="lg:absolute lg:top-[72px] lg:right-[72px] lg:w-[340px]"
+    />
+  ) : null;
+
   return (
-    <main className="flex min-h-svh flex-col items-center justify-center gap-6 bg-background px-4 text-center text-foreground">
-      <p className="rounded-full border border-border px-3 py-1 text-sm text-muted-foreground">
-        En construcción · Fase 0
-      </p>
-      <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">TerraMova</h1>
-      <p className="max-w-prose text-base text-muted-foreground sm:text-lg">
-        Explorador de actividad sísmica mundial con datos públicos del USGS. Todavía no hay datos
-        conectados: esta página solo confirma que el entorno de desarrollo funciona.
-      </p>
+    <main className="flex flex-col lg:h-[calc(100dvh-56px)]">
+      <h1 className="sr-only">Explorar sismos recientes</h1>
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+        <div className="flex items-center gap-2 overflow-x-auto border-b border-border-subtle bg-panel px-3 py-2.5 lg:hidden">
+          <button
+            type="button"
+            aria-expanded={filtersOpen}
+            aria-controls={filtersPanelId}
+            onClick={() => setFiltersOpen((open) => !open)}
+            className="flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-md border border-border bg-surface px-3 text-[13px] font-medium"
+          >
+            <SlidersHorizontal aria-hidden="true" className="size-4" />
+            Filtros
+            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs text-primary-foreground">
+              {chips.length}
+            </span>
+          </button>
+          {chips.map((chip) => (
+            <span
+              key={chip}
+              className="inline-flex h-8 shrink-0 items-center rounded-full border border-border bg-surface-raised px-3 text-xs"
+            >
+              {chip}
+            </span>
+          ))}
+        </div>
+
+        <aside
+          id={filtersPanelId}
+          aria-label="Filtros"
+          className={cn(
+            "border-border-subtle bg-panel p-5 lg:block lg:w-[296px] lg:shrink-0 lg:overflow-y-auto lg:border-r",
+            filtersOpen ? "block border-b" : "hidden",
+          )}
+        >
+          <FilterPanel
+            filters={filters}
+            onChange={update}
+            onReset={reset}
+            periodRange={
+              listWindow ? formatDateRange(listWindow.start, listWindow.end, "UTC") : undefined
+            }
+          />
+          <div className="mt-6 hidden flex-col gap-2.5 lg:flex">
+            <p className="text-xs text-muted-foreground">Filtros activos</p>
+            <ul className="flex flex-wrap gap-1.5">
+              {chips.map((chip) => (
+                <li
+                  key={chip}
+                  className="inline-flex h-7 items-center rounded-full border border-border bg-surface-raised px-2.5 text-xs"
+                >
+                  {chip}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </aside>
+
+        <section
+          aria-label="Mapa"
+          className="relative h-[312px] shrink-0 sm:h-[452px] lg:h-auto lg:min-w-0 lg:flex-1"
+        >
+          <MapArea>{wide ? detail : null}</MapArea>
+        </section>
+
+        <div className="flex min-h-0 flex-col border-border-subtle bg-panel lg:w-[392px] lg:shrink-0 lg:border-l">
+          {detail && !wide ? <div className="p-3">{detail}</div> : null}
+          <EventList
+            events={events}
+            status={listStatus}
+            error={list.error ?? meta.error}
+            hasMore={list.hasNextPage}
+            loadingMore={list.isFetchingNextPage}
+            selectedId={filters.event}
+            order={filters.order}
+            onOrderChange={(order) => update({ order })}
+            onSelect={select}
+            onLoadMore={() => void list.fetchNextPage()}
+            onRetry={() => void (listQuery === null ? meta.refetch() : list.refetch())}
+            onReset={reset}
+          />
+        </div>
+      </div>
+      <StatusBar meta={meta.data} status={meta.status} />
     </main>
   );
+}
+
+function activeChips(filters: ExploreFilters): string[] {
+  const chips = [
+    PERIOD_CHIPS[filters.period],
+    filters.types === "all" ? "Todos los tipos" : "Solo sismos",
+  ];
+  if (filters.min_magnitude !== undefined || filters.max_magnitude !== undefined) {
+    chips.push(`M ${rangeLabel(filters.min_magnitude, filters.max_magnitude)}`);
+  }
+  if (filters.min_depth_km !== undefined || filters.max_depth_km !== undefined) {
+    chips.push(`${rangeLabel(filters.min_depth_km, filters.max_depth_km)} km`);
+  }
+  return chips;
+}
+
+function rangeLabel(min: number | undefined, max: number | undefined): string {
+  const format = (value: number) => String(value).replace(".", ",");
+  if (min !== undefined && max !== undefined) return `${format(min)}–${format(max)}`;
+  if (min !== undefined) return `≥ ${format(min)}`;
+  return `≤ ${format(max ?? 0)}`;
 }

@@ -269,3 +269,12 @@ Solo esto; el resto llega con su fase.
 - `make schema` regenera contrato y tipos; `make contract` (incluido en `make check`) y `.github/workflows/contract.yml` fallan si están desactualizados.
 - import-linter: capas `api | management > services > selectors > models > domain | ports`; la API no puede importar `services` (escritura).
 - Tests de Redis en la base 15, vaciada antes de cada test (`conftest.py`).
+
+### Resultado real de la Fase 3 · PR 1 (interfaz sin globo)
+
+- `frontend/src/app/`: `AppShell.tsx` (cabecera con navegación, créditos, movimiento y tema; enlace "Saltar al contenido"), `router.tsx` (`/`, `/acerca`, página no encontrada en `NotFound.tsx`), `providers.tsx` y `query-client.ts` (reintentos solo ante red y 5xx). Las pruebas de integración de páginas viven en `app/` (pueden importar features).
+- `features/explore/`: `api/queries.ts` (meta, lista infinita por cursor, detalle con datos iniciales de la lista), `filters/` (esquema zod ⇄ URL, traducción a parámetros de la API, panel, campos numéricos que aplican al salir, `useImmediateValue`), `list/`, `detail/`, `status/` (frescura y cobertura), `map/MapArea.tsx` (aviso honesto y leyenda hasta el PR 2) y `ExplorePage.tsx`.
+- `features/about/`: "Acerca de y créditos" con el aviso de que no es un sistema de alerta.
+- `shared/`: `api/errors.ts` (`ApiRequestError`, mensajes y política de reintento), `hooks/` (`preferences.tsx` y `preferences-context.ts` para tema y movimiento reducido; `useMediaQuery`), `lib/` (`format.ts`, `depth.ts`, `storage.ts`), `ui/` (`Button`, `DepthDot`), `styles/tokens.css` (tokens aprobados, tema claro y movimiento reducido).
+- Pruebas: `src/test/msw/` (manejadores y datos ficticios etiquetados), `src/test/render.tsx`, Vitest junto a cada módulo; `e2e/` y `playwright.config.ts` (build + `vite preview`, API simulada con `page.route`).
+- `.github/workflows/e2e.yml` y `make e2e`.

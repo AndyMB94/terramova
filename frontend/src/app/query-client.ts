@@ -1,12 +1,14 @@
 import { QueryClient } from "@tanstack/react-query";
 
-// Reintentos acotados: la API pública no debe recibir ráfagas por fallos repetidos.
-// staleTime se alineará con el ciclo de sincronización cuando exista la API (Fase 2).
+import { shouldRetry } from "@/shared/api/errors";
+
+// Reintentos acotados (solo red y 5xx) y datos frescos durante 60 s, alineado con el
+// Cache-Control de la API: la sincronización con USGS corre cada pocos minutos.
 export function createQueryClient(): QueryClient {
   return new QueryClient({
     defaultOptions: {
       queries: {
-        retry: 2,
+        retry: shouldRetry,
         staleTime: 60_000,
         refetchOnWindowFocus: false,
       },

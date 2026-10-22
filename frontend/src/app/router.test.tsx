@@ -1,14 +1,32 @@
-import { render, screen } from "@testing-library/react";
-import { createMemoryRouter, RouterProvider } from "react-router";
+import { screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+
+import { renderRoutes } from "@/test/render";
 
 import { routes } from "./router";
 
 describe("router", () => {
-  it("muestra la página de exploración en la ruta raíz", () => {
-    const router = createMemoryRouter(routes, { initialEntries: ["/"] });
-    render(<RouterProvider router={router} />);
+  it("la ruta raíz es la página de exploración", async () => {
+    renderRoutes(routes);
 
-    expect(screen.getByRole("heading", { level: 1, name: "TerraMova" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Explorar sismos recientes" }),
+    ).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "TerraMova" })).toBeInTheDocument();
+  });
+
+  it("acerca muestra las fuentes y el aviso de que no es un sistema de alerta", () => {
+    renderRoutes(routes, "/acerca");
+
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Acerca de TerraMova" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/no es un sistema oficial de alerta/)).toBeInTheDocument();
+  });
+
+  it("una ruta desconocida muestra la página no encontrada", () => {
+    renderRoutes(routes, "/no-existe");
+
+    expect(screen.getByRole("heading", { name: "Página no encontrada" })).toBeInTheDocument();
   });
 });

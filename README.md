@@ -4,7 +4,7 @@ Explorador interactivo de actividad sísmica mundial con globo 3D, mapa 2D, dato
 
 ## Estado del paquete
 
-Fase 0 (base reproducible) implementada el 21 de octubre de 2026: entorno local con frontend, backend, PostgreSQL y Redis, calidad automatizada y CI. Fases 1 y 2 implementadas: sincronización real e idempotente con USGS y API pública de solo lectura. Todavía **no** hay interfaz con globo ni configuración de producción; ver [docs/ROADMAP.md](docs/ROADMAP.md). TerraMova es un nombre provisional; disponibilidad de marca sin comprobar.
+Fase 0 (base reproducible) implementada el 21 de octubre de 2026: entorno local con frontend, backend, PostgreSQL y Redis, calidad automatizada y CI. Fases 1 y 2 implementadas (sincronización real con USGS y API pública) y primera parte de la Fase 3: interfaz de exploración con lista, ficha, filtros y estado de los datos. Todavía **no** hay globo ni configuración de producción; ver [docs/ROADMAP.md](docs/ROADMAP.md). TerraMova es un nombre provisional; disponibilidad de marca sin comprobar.
 
 ## Desarrollo local
 
@@ -53,7 +53,10 @@ Sin fechas se devuelven los últimos 7 días (máximo 31) y solo sismos (`event_
 ```bash
 make check      # lint + formato + tipos + capas + contrato + tests + build (lo mismo que la CI)
 make precommit  # hooks de pre-commit, incluida la detección de secretos
+make e2e        # recorridos E2E con Playwright en 1440, 768 y 360 px (API simulada)
 ```
+
+Para `make e2e` hace falta, una sola vez, el navegador de Playwright: `pnpm --dir frontend exec playwright install chromium` y, en WSL o Linux sin librerías gráficas, `sudo pnpm --dir frontend exec playwright install-deps chromium`.
 
 Los tests del backend usan PostgreSQL y Redis reales: requieren `make up`. La CI (`.github/workflows/`) ejecuta lo mismo con servicios efímeros y sin secretos.
 
