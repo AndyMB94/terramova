@@ -6,3 +6,6 @@ node_modules
 pnpm-lock.yaml
 # Generado por openapi-typescript (pnpm gen:api); la CI comprueba que está al día.
 src/shared/api/schema.d.ts
+# Datos generados por infra/scripts/build_globe_assets.py (minificados a propósito).
+public/geo
+public/imagery

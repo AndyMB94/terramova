@@ -42,12 +42,45 @@ export function AboutPage() {
           </a>{" "}
           (dominio público).
         </li>
+        <li>
+          Imágenes del globo:{" "}
+          <a
+            className="text-primary hover:underline"
+            href="https://visibleearth.nasa.gov/collection/1484/blue-marble"
+            target="_blank"
+            rel="noreferrer"
+          >
+            NASA Blue Marble
+          </a>{" "}
+          (NASA Earth Observatory). Su uso no implica respaldo de NASA.
+        </li>
+        <li>
+          Fronteras:{" "}
+          <a
+            className="text-primary hover:underline"
+            href="https://www.naturalearthdata.com/"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Natural Earth
+          </a>{" "}
+          1:110m (dominio público). Las fronteras son orientativas y no expresan posición sobre
+          territorios en disputa.
+        </li>
+        <li>
+          Motor del globo:{" "}
+          <a
+            className="text-primary hover:underline"
+            href="https://cesium.com/platform/cesiumjs/"
+            target="_blank"
+            rel="noreferrer"
+          >
+            CesiumJS
+          </a>{" "}
+          (licencia Apache 2.0). No se usan servicios de Cesium ion.
+        </li>
         <li>Tipografías Geist y Geist Mono (licencia SIL Open Font), autoalojadas.</li>
       </ul>
-      <p className="mt-3 text-sm text-muted-foreground">
-        Las imágenes del globo y la geometría de países se añadirán con sus créditos cuando el mapa
-        esté disponible.
-      </p>
 
       <p className="mt-10">
         <Link to="/" className="text-primary hover:underline">

@@ -1,6 +1,32 @@
-import { expect, type Page, test } from "@playwright/test";
+import { test as base, expect, type Page } from "@playwright/test";
 
 import { BLAST, EVENTS, meta, SECOND_PAGE } from "../src/test/msw/fixtures";
+
+/** Desactiva WebGL en la página: la app muestra el aviso y la lista (camino sin globo). */
+function disableWebGL() {
+  const original = HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext = function (
+    this: HTMLCanvasElement,
+    type: string,
+    ...args: unknown[]
+  ) {
+    if (type.startsWith("webgl")) return null;
+    return (original as (...a: unknown[]) => unknown).call(this, type, ...args);
+  } as typeof HTMLCanvasElement.prototype.getContext;
+}
+
+/**
+ * Sin GPU, el globo se dibuja por software y satura la CPU con varias pruebas en paralelo.
+ * Por defecto las pruebas corren sin WebGL; las del globo usan `test.use({ webgl: true })`.
+ */
+const test = base.extend<{ webgl: boolean }>({
+  webgl: [false, { option: true }],
+  // "provide" en vez del habitual "use": la regla de hooks de React lo confundiría.
+  page: async ({ page, webgl }, provide) => {
+    if (!webgl) await page.addInitScript(disableWebGL);
+    await provide(page);
+  },
+});
 
 const PANAMA = EVENTS.find((event) => event.external_id === "test0002") ?? EVENTS[0];
 if (!PANAMA) throw new Error("Faltan los datos de prueba");
@@ -24,6 +50,34 @@ async function mockApi(page: Page, options: { failList?: boolean } = {}) {
     }
     const results = url.searchParams.get("event_type") === "all" ? [...EVENTS, BLAST] : EVENTS;
     return route.fulfill({ json: { results, next_cursor: "page-2", window: WINDOW } });
+  });
+  await page.route("**/api/v1/earthquakes/geojson/?*", (route) => {
+    const url = new URL(route.request().url());
+    const events = url.searchParams.get("event_type") === "all" ? [...EVENTS, BLAST] : EVENTS;
+    return route.fulfill({
+      json: {
+        type: "FeatureCollection",
+        features: events.map((event) => ({
+          type: "Feature",
+          id: event.id,
+          geometry: { type: "Point", coordinates: [event.longitude, event.latitude] },
+          properties: {
+            magnitude: event.magnitude,
+            depth_km: event.depth_km,
+            occurred_at: event.occurred_at,
+            place: event.place ?? "",
+          },
+        })),
+        metadata: {
+          window: WINDOW,
+          total_matching: events.length,
+          returned: events.length,
+          limit: 5000,
+          truncated: false,
+          selection: "magnitude_desc",
+        },
+      },
+    });
   });
   await page.route(/\/api\/v1\/earthquakes\/[0-9a-f-]{36}\/$/, (route) => {
     const id = route.request().url().split("/").at(-2);
@@ -151,4 +205,84 @@ test("fuentes y créditos accesibles en cualquier tamaño de pantalla", async ({
 
   await expect(page.getByRole("heading", { level: 1, name: "Acerca de TerraMova" })).toBeVisible();
   await expect(page.getByText(/no es un sistema oficial de alerta/)).toBeVisible();
+});
+
+// --- globo -------------------------------------------------------------------------------
+
+test.describe("globo (WebGL por software)", () => {
+  test.use({ webgl: true });
+  // Dibujar por software satura la CPU: varias pruebas del globo en paralelo (y en los tres
+  // tamaños) llegaron a una carga de 43 en 12 núcleos y fallaban por tiempo. Se ejecutan
+  // en secuencia y solo en escritorio; tableta y móvil se cubren con el resto de la suite.
+  test.describe.configure({ mode: "default" });
+  test.skip(({ viewport }) => (viewport?.width ?? 0) < 1024, "Globo solo en escritorio");
+
+  /** Peticiones que salen fuera del servidor local (p. ej. Cesium ion): deben ser cero. */
+  function trackExternalRequests(page: Page): string[] {
+    const external: string[] = [];
+    page.on("request", (request) => {
+      const { hostname, protocol } = new URL(request.url());
+      if (protocol.startsWith("http") && !["127.0.0.1", "localhost"].includes(hostname)) {
+        external.push(request.url());
+      }
+    });
+    return external;
+  }
+
+  test("el globo se dibuja con recursos propios, créditos y sin servicios externos", async ({
+    page,
+  }) => {
+    const external = trackExternalRequests(page);
+    await mockApi(page);
+    await page.goto("/");
+
+    await expect(page.getByRole("application", { name: /Globo con los eventos/ })).toBeVisible();
+    await expect(page.locator("canvas").first()).toBeVisible();
+    await expect(page.getByText("Imágenes: NASA Blue Marble")).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText(/Fronteras: Natural Earth/)).toBeVisible();
+    await page.waitForTimeout(1500);
+    expect(external).toEqual([]);
+  });
+
+  test("cambio entre globo 3D y mapa 2D", async ({ page }) => {
+    await mockApi(page);
+    await page.goto("/");
+    const map2d = page.getByRole("button", { name: "Mapa 2D" });
+    await expect(map2d).toHaveAttribute("aria-pressed", "false");
+
+    await map2d.click();
+
+    await expect(map2d).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByRole("button", { name: "Globo 3D" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+  });
+
+  test("filtrar por el área visible del mapa", async ({ page }) => {
+    const requests = await mockApi(page);
+    await page.goto("/");
+    await expect(page.locator("canvas").first()).toBeVisible();
+
+    for (let step = 0; step < 4; step += 1) {
+      await page.getByRole("button", { name: "Acercar" }).click();
+    }
+    const filtersButton = page.getByRole("button", { name: /^Filtros/ });
+    if (await filtersButton.isVisible()) await filtersButton.click();
+    await page.getByRole("button", { name: "Vista del mapa" }).click();
+
+    await expect(page).toHaveURL(/bbox=-?\d/);
+    await expect.poll(() => requests.at(-1)?.searchParams.get("bbox") ?? null).not.toBeNull();
+  });
+});
+
+test("sin WebGL se avisa y la lista sigue funcionando", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/");
+
+  await expect(page.getByText("Este navegador no puede mostrar el globo")).toBeVisible();
+  await expect(eventList(page).getByText("120 km al NE de Ficticia, Testland")).toBeVisible();
+  const filtersButton = page.getByRole("button", { name: /^Filtros/ });
+  if (await filtersButton.isVisible()) await filtersButton.click();
+  await expect(page.getByRole("button", { name: "Vista del mapa" })).toBeDisabled();
 });

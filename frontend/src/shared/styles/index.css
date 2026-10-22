@@ -89,3 +89,23 @@
     outline-offset: 2px;
   }
 }
+
+/* Créditos del globo. No se usa Cesium ion, así que su logotipo no se muestra (sería
+   engañoso); CesiumJS se cita por escrito junto a NASA, Natural Earth y USGS.
+   Cesium pone display en línea en sus elementos y posiciona .cesium-widget-credits de forma
+   absoluta: hace falta !important para integrarlos en nuestra línea de créditos. */
+.terramova-credits .cesium-credit-logoContainer {
+  display: none !important;
+}
+.terramova-credits .cesium-widget-credits {
+  position: static !important;
+  display: inline !important;
+  padding: 0 !important;
+  color: inherit;
+  font-size: inherit;
+  background: none;
+}
+.terramova-credits a {
+  color: inherit;
+  text-decoration: underline;
+}

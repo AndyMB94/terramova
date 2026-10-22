@@ -20,6 +20,31 @@ export const handlers = [
     return HttpResponse.json({ results, next_cursor: "page-2", window: WINDOW });
   }),
 
+  http.get("*/api/v1/earthquakes/geojson/", () =>
+    HttpResponse.json({
+      type: "FeatureCollection",
+      features: EVENTS.map((event) => ({
+        type: "Feature",
+        id: event.id,
+        geometry: { type: "Point", coordinates: [event.longitude, event.latitude] },
+        properties: {
+          magnitude: event.magnitude,
+          depth_km: event.depth_km,
+          occurred_at: event.occurred_at,
+          place: event.place ?? "",
+        },
+      })),
+      metadata: {
+        window: WINDOW,
+        total_matching: EVENTS.length,
+        returned: EVENTS.length,
+        limit: 5000,
+        truncated: false,
+        selection: "magnitude_desc",
+      },
+    }),
+  ),
+
   http.get("*/api/v1/earthquakes/:id/", ({ params }) => {
     const found = [...EVENTS, ...SECOND_PAGE, BLAST].find((item) => item.id === params.id);
     return found

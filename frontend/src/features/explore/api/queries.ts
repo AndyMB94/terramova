@@ -5,7 +5,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 
-import type { ListQuery } from "@/features/explore/filters/api-query";
+import type { FilterQuery, ListQuery } from "@/features/explore/filters/api-query";
 import { apiClient } from "@/shared/api/client";
 import { ApiRequestError } from "@/shared/api/errors";
 import type { components } from "@/shared/api/schema";
@@ -13,6 +13,7 @@ import type { components } from "@/shared/api/schema";
 export type Earthquake = components["schemas"]["Earthquake"];
 export type Meta = components["schemas"]["MetaResponse"];
 type ListPage = components["schemas"]["EarthquakeListResponse"];
+export type MapPoints = components["schemas"]["EarthquakeGeoJsonResponse"];
 
 interface FetchResult<T> {
   data?: T;
@@ -50,6 +51,22 @@ export function useEarthquakeList(query: ListQuery | null) {
         }),
       ),
     getNextPageParam: (last) => last.next_cursor ?? undefined,
+  });
+}
+
+export function useMapPoints(query: FilterQuery | null) {
+  return useQuery({
+    queryKey: ["map-points", query],
+    enabled: query !== null,
+    queryFn: async ({ signal }) =>
+      unwrap(
+        await apiClient.GET("/api/v1/earthquakes/geojson/", {
+          params: { query: query ?? {} },
+          signal,
+        }),
+      ),
+    // Al cambiar los filtros se mantienen los puntos anteriores hasta que llegan los nuevos.
+    placeholderData: (previous) => previous,
   });
 }
 

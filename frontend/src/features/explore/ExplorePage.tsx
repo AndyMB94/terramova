@@ -1,15 +1,24 @@
 import { SlidersHorizontal } from "lucide-react";
 import { useCallback, useId, useMemo, useState } from "react";
 
-import { useEarthquake, useEarthquakeList, useMeta } from "@/features/explore/api/queries";
+import {
+  useEarthquake,
+  useEarthquakeList,
+  useMapPoints,
+  useMeta,
+} from "@/features/explore/api/queries";
 import { EventDetail } from "@/features/explore/detail/EventDetail";
-import { toListQuery } from "@/features/explore/filters/api-query";
+import { toFilterQuery, toListQuery } from "@/features/explore/filters/api-query";
 import { FilterPanel } from "@/features/explore/filters/FilterPanel";
 import type { ExploreFilters } from "@/features/explore/filters/schema";
 import { useExploreFilters } from "@/features/explore/filters/useExploreFilters";
 import { EventList } from "@/features/explore/list/EventList";
+import { useGlobeApiRef } from "@/features/explore/globe/controller";
+import type { GlobePoint } from "@/features/explore/globe/points";
+import { supportsWebGL } from "@/features/explore/globe/webgl";
 import { MapArea } from "@/features/explore/map/MapArea";
 import { StatusBar } from "@/features/explore/status/StatusBar";
+import { usePreferences } from "@/shared/hooks/preferences-context";
 import { useMediaQuery } from "@/shared/hooks/useMediaQuery";
 import { formatDateRange } from "@/shared/lib/format";
 import { cn } from "@/shared/lib/utils";
@@ -33,9 +42,35 @@ export function ExplorePage() {
   const listWindow = list.data?.pages[0]?.window ?? null;
   const wide = useMediaQuery("(min-width: 1024px)");
 
+  const filterQuery = useMemo(() => toFilterQuery(filters, coverageEnd), [filters, coverageEnd]);
+  const map = useMapPoints(filterQuery);
+  const points = useMemo<GlobePoint[]>(
+    () =>
+      (map.data?.features ?? []).map((feature) => ({
+        id: feature.id,
+        longitude: feature.geometry.coordinates[0] ?? 0,
+        latitude: feature.geometry.coordinates[1] ?? 0,
+        magnitude: feature.properties.magnitude,
+        depthKm: feature.properties.depth_km,
+      })),
+    [map.data],
+  );
+  const globeApi = useGlobeApiRef();
+  const [mapAvailable, setMapAvailable] = useState(supportsWebGL);
+  const [focus, setFocus] = useState<{ id: string; nonce: number } | null>(null);
+  const { reducedMotion } = usePreferences();
+
   const selected = useEarthquake(filters.event);
 
-  const select = useCallback((id: string) => update({ event: id }), [update]);
+  // Desde la lista se centra el globo en el evento; desde el globo, no (ya está a la vista).
+  const selectFromList = useCallback(
+    (id: string) => {
+      update({ event: id });
+      setFocus({ id, nonce: Date.now() });
+    },
+    [update],
+  );
+  const selectFromGlobe = useCallback((id: string) => update({ event: id }), [update]);
   const closeDetail = useCallback(() => {
     const id = filters.event;
     update({ event: undefined });
@@ -100,6 +135,8 @@ export function ExplorePage() {
             periodRange={
               listWindow ? formatDateRange(listWindow.start, listWindow.end, "UTC") : undefined
             }
+            onUseMapView={() => globeApi.current?.getViewBbox() ?? null}
+            mapAvailable={mapAvailable}
           />
           <div className="mt-6 hidden flex-col gap-2.5 lg:flex">
             <p className="text-xs text-muted-foreground">Filtros activos</p>
@@ -120,7 +157,18 @@ export function ExplorePage() {
           aria-label="Mapa"
           className="relative h-[312px] shrink-0 sm:h-[452px] lg:h-auto lg:min-w-0 lg:flex-1"
         >
-          <MapArea>{wide ? detail : null}</MapArea>
+          <MapArea
+            points={points}
+            selectedId={filters.event}
+            focus={focus}
+            onSelect={selectFromGlobe}
+            reducedMotion={reducedMotion}
+            apiRef={globeApi}
+            available={mapAvailable}
+            onUnavailable={() => setMapAvailable(false)}
+          >
+            {wide ? detail : null}
+          </MapArea>
         </section>
 
         <div className="flex min-h-0 flex-col border-border-subtle bg-panel lg:w-[392px] lg:shrink-0 lg:border-l">
@@ -134,14 +182,14 @@ export function ExplorePage() {
             selectedId={filters.event}
             order={filters.order}
             onOrderChange={(order) => update({ order })}
-            onSelect={select}
+            onSelect={selectFromList}
             onLoadMore={() => void list.fetchNextPage()}
             onRetry={() => void (listQuery === null ? meta.refetch() : list.refetch())}
             onReset={reset}
           />
         </div>
       </div>
-      <StatusBar meta={meta.data} status={meta.status} />
+      <StatusBar meta={meta.data} status={meta.status} map={map.data?.metadata} />
     </main>
   );
 }
@@ -157,6 +205,7 @@ function activeChips(filters: ExploreFilters): string[] {
   if (filters.min_depth_km !== undefined || filters.max_depth_km !== undefined) {
     chips.push(`${rangeLabel(filters.min_depth_km, filters.max_depth_km)} km`);
   }
+  if (filters.bbox) chips.push("Área del mapa");
   return chips;
 }
 

@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useId, useState } from "react";
 
 import {
   DEPTH_RANGE,
@@ -19,12 +19,40 @@ interface FilterPanelProps {
   onChange: (changes: Partial<ExploreFilters>) => void;
   onReset: () => void;
   periodRange?: string;
+  /** Área visible del globo como bbox (null si se ve todo el planeta). */
+  onUseMapView: () => string | null;
+  mapAvailable: boolean;
 }
 
 const legendClass = "mb-2.5 p-0 text-xs font-medium tracking-wider text-muted-foreground uppercase";
 
-export function FilterPanel({ filters, onChange, onReset, periodRange }: FilterPanelProps) {
+export function FilterPanel({
+  filters,
+  onChange,
+  onReset,
+  periodRange,
+  onUseMapView,
+  mapAvailable,
+}: FilterPanelProps) {
   const typesId = useId();
+  const [bbox, setBbox] = useImmediateValue(filters.bbox);
+  const [areaHint, setAreaHint] = useState<string | null>(null);
+
+  const useWorld = () => {
+    setAreaHint(null);
+    setBbox(undefined);
+    onChange({ bbox: undefined });
+  };
+  const useMapView = () => {
+    const view = onUseMapView();
+    if (!view) {
+      setAreaHint("La vista abarca casi todo el planeta: acerca el mapa para elegir un área.");
+      return;
+    }
+    setAreaHint(null);
+    setBbox(view);
+    onChange({ bbox: view });
+  };
   const [period, setPeriod] = useImmediateValue(filters.period);
   const [allTypes, setAllTypes] = useImmediateValue(filters.types === "all");
   return (
@@ -111,6 +139,43 @@ export function FilterPanel({ filters, onChange, onReset, periodRange }: FilterP
             onCommit={(max_depth_km) => onChange({ max_depth_km })}
           />
         </div>
+      </fieldset>
+
+      <fieldset className="flex flex-col gap-2">
+        <legend className={legendClass}>Área</legend>
+        <div className="grid grid-cols-2 gap-1 rounded-[10px] border border-border-subtle bg-surface p-1">
+          <button
+            type="button"
+            aria-pressed={!bbox}
+            onClick={useWorld}
+            className={cn(
+              "h-9 cursor-pointer rounded-sm text-[13px]",
+              !bbox ? "bg-selected font-medium" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Todo el mundo
+          </button>
+          <button
+            type="button"
+            aria-pressed={Boolean(bbox)}
+            disabled={!mapAvailable}
+            onClick={useMapView}
+            className={cn(
+              "h-9 cursor-pointer rounded-sm text-[13px] disabled:cursor-not-allowed disabled:opacity-50",
+              bbox ? "bg-selected font-medium" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Vista del mapa
+          </button>
+        </div>
+        <p className="text-xs text-muted-foreground" aria-live="polite">
+          {!mapAvailable
+            ? "Requiere el globo, que no está disponible en este navegador."
+            : (areaHint ??
+              (bbox
+                ? "Filtrando por el área visible al pulsar. Vuelve a pulsar para actualizarla."
+                : "Mueve el mapa y pulsa «Vista del mapa» para filtrar por esa zona."))}
+        </p>
       </fieldset>
 
       <div className="flex items-start gap-2.5 text-[13px] text-tertiary">

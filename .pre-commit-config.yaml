@@ -41,4 +41,4 @@ repos:
         files: ^frontend/
         # El hook corre desde la raíz y no aplica frontend/.prettierignore: se excluye aquí
         # lo generado (los tipos de la API los produce openapi-typescript tal cual).
-        exclude: ^frontend/(pnpm-lock\.yaml|src/shared/api/schema\.d\.ts)$
+        exclude: ^frontend/(pnpm-lock\.yaml|src/shared/api/schema\.d\.ts|public/(geo|imagery)/.*)$

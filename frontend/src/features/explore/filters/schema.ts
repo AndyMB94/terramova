@@ -30,6 +30,7 @@ const rawSchema = z.object({
   max_depth_km: optionalNumber(DEPTH_RANGE.min, DEPTH_RANGE.max),
   types: z.enum(["earthquake", "all"]).catch("earthquake"),
   order: z.enum(ORDERS).catch("magnitude"),
+  bbox: z.string().refine(isValidBbox).optional().catch(undefined),
   event: z.uuid().optional().catch(undefined),
 });
 
@@ -47,6 +48,16 @@ export const exploreFiltersSchema = rawSchema.transform((filters) => ({
 export type ExploreFilters = z.output<typeof exploreFiltersSchema>;
 
 export const DEFAULT_FILTERS: ExploreFilters = exploreFiltersSchema.parse({});
+
+/** "oeste,sur,este,norte" en grados; oeste > este cruza el antimeridiano. */
+export function isValidBbox(value: string): boolean {
+  const parts = value.split(",").map(Number);
+  if (parts.length !== 4 || parts.some((part) => !Number.isFinite(part))) return false;
+  const [west, south, east, north] = parts as [number, number, number, number];
+  const lonOk = [west, east].every((lon) => lon >= -180 && lon <= 180);
+  const latOk = [south, north].every((lat) => lat >= -90 && lat <= 90);
+  return lonOk && latOk && south < north && west !== east;
+}
 
 function exceeds(min: number | undefined, max: number | undefined): boolean {
   return min !== undefined && max !== undefined && min > max;
