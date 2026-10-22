@@ -21,10 +21,16 @@ def api_exception_handler(exc: Exception, context: dict[str, Any]) -> Response |
         return response
 
     if isinstance(exc, exceptions.ValidationError):
+        # La API pública solo recibe parámetros de consulta: todo 400 es de filtros.
         response.data = {
-            "code": "invalid_request",
-            "message": "La solicitud contiene parámetros no válidos.",
+            "code": "invalid_filters",
+            "message": "Los filtros no son válidos.",
             "errors": response.data,
+        }
+    elif isinstance(exc, exceptions.Throttled):
+        response.data = {
+            "code": "rate_limited",
+            "message": "Demasiadas peticiones. Inténtalo de nuevo en unos segundos.",
         }
     else:
         message = exc.detail if isinstance(exc.detail, str) else exc.default_detail

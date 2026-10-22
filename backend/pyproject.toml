@@ -7,6 +7,7 @@ dependencies = [
     "django==5.2.18",
     "django-environ==0.14.0",
     "djangorestframework==3.18.3",
+    "drf-spectacular==0.30.0",
     "httpx==0.28.1",
     "psycopg[binary]==3.3.6",
     "pydantic==2.14.1",
@@ -102,22 +103,30 @@ source_modules = ["integrations"]
 forbidden_modules = ["django"]
 
 [[tool.importlinter.contracts]]
-name = "capas de earthquakes: comando > servicios > selectors > modelos > ports (reglas 1-2)"
+name = "capas de earthquakes: api|comando > servicios > selectors > modelos > dominio|ports (reglas 1-2)"
 type = "layers"
 layers = [
-    "apps.earthquakes.management",
+    "apps.earthquakes.api | apps.earthquakes.management",
     "apps.earthquakes.services",
     "apps.earthquakes.selectors",
     "apps.earthquakes.models",
-    "apps.earthquakes.ports",
+    "apps.earthquakes.domain | apps.earthquakes.ports",
 ]
 
 [[tool.importlinter.contracts]]
 name = "servicios, selectors y modelos dependen de ports, no de adapters (regla 2)"
 type = "forbidden"
 source_modules = [
+    "apps.earthquakes.api",
     "apps.earthquakes.services",
     "apps.earthquakes.selectors",
     "apps.earthquakes.models",
+    "apps.earthquakes.domain",
 ]
 forbidden_modules = ["integrations"]
+
+[[tool.importlinter.contracts]]
+name = "la API pública no llega a los servicios de escritura (regla 1)"
+type = "forbidden"
+source_modules = ["apps.earthquakes.api"]
+forbidden_modules = ["apps.earthquakes.services"]

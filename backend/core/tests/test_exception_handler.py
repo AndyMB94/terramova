@@ -32,18 +32,18 @@ def test_throttled_keeps_retry_after_header() -> None:
 
     assert response is not None
     assert response.status_code == 429
-    assert response.data["code"] == "throttled"
+    assert response.data["code"] == "rate_limited"
     assert response["Retry-After"] == "30"
 
 
-def test_validation_error_is_grouped_under_invalid_request() -> None:
+def test_validation_error_is_grouped_under_invalid_filters() -> None:
     response = api_exception_handler(
         exceptions.ValidationError({"start": ["Fecha no válida."]}), {}
     )
 
     assert response is not None
     assert response.status_code == 400
-    assert response.data["code"] == "invalid_request"
+    assert response.data["code"] == "invalid_filters"
     assert response.data["errors"] == {"start": ["Fecha no válida."]}
 
 

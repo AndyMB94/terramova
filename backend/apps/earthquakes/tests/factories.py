@@ -5,7 +5,7 @@ from typing import Any
 
 import factory
 
-from apps.earthquakes.models import Earthquake
+from apps.earthquakes.models import Earthquake, SyncRun
 from apps.earthquakes.ports import EarthquakeRecord, Feed, FeedBatch, FeedResult, RejectedRecord
 
 NOW = datetime(2026, 10, 22, 2, 30, tzinfo=UTC)
@@ -91,3 +91,28 @@ class FakeSource:
         if isinstance(response, Exception):
             raise response
         return response
+
+
+def make_successful_run(
+    window_start: datetime | None = None,
+    window_end: datetime | None = None,
+    *,
+    feed: str = "month",
+    started_at: datetime | None = None,
+    not_modified: bool = False,
+    created: int = 1,
+) -> SyncRun:
+    """SyncRun correcto que declara una ventana cubierta (por defecto, 30 días hasta NOW)."""
+    end = window_end or NOW
+    started = started_at or end
+    return SyncRun.objects.create(
+        source="usgs",
+        feed=feed,
+        status=SyncRun.Status.SUCCEEDED,
+        started_at=started,
+        finished_at=started + timedelta(seconds=3),
+        window_start=None if not_modified else (window_start or end - timedelta(days=30)),
+        window_end=None if not_modified else end,
+        not_modified=not_modified,
+        created=0 if not_modified else created,
+    )

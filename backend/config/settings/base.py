@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "drf_spectacular",
     "apps.earthquakes",
 ]
 
@@ -69,7 +70,11 @@ DATABASES = {
         "PORT": env.int("DB_PORT"),
         "CONN_MAX_AGE": 60,
         "CONN_HEALTH_CHECKS": True,
-        "OPTIONS": {"connect_timeout": 5},
+        # statement_timeout acota cualquier consulta, también las de la API pública.
+        "OPTIONS": {
+            "connect_timeout": 5,
+            "options": f"-c statement_timeout={env.int('DB_STATEMENT_TIMEOUT_MS', default=15000)}",
+        },
     }
 }
 
@@ -116,6 +121,30 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAdminUser"],
     "EXCEPTION_HANDLER": "core.api.exception_handler.api_exception_handler",
     "UNAUTHENTICATED_USER": None,
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_THROTTLE_CLASSES": [
+        "core.api.throttling.GlobalThrottle",
+        "core.api.throttling.PerIpThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "per_ip": env.str("API_THROTTLE_PER_IP", default="120/min"),
+        "per_ip_fallback": env.str("API_THROTTLE_PER_IP_FALLBACK", default="30/min"),
+        "global": env.str("API_THROTTLE_GLOBAL", default="3000/min"),
+        "global_fallback": env.str("API_THROTTLE_GLOBAL_FALLBACK", default="600/min"),
+    },
+    # Proxies de confianza delante de Django: 0 en desarrollo, 1 detrás de Nginx.
+    "NUM_PROXIES": env.int("API_NUM_PROXIES", default=0),
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "TerraMova API",
+    "DESCRIPTION": (
+        "API pública de solo lectura con eventos sísmicos de USGS. Fechas en UTC; "
+        "consultas siempre acotadas por ventana, página y número de puntos."
+    ),
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "SCHEMA_PATH_PREFIX": "/api/v1",
 }
 
 SECURE_CONTENT_TYPE_NOSNIFF = True

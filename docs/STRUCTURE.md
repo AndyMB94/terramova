@@ -259,3 +259,13 @@ Solo esto; el resto llega con su fase.
 - `integrations/usgs/`: `client.py`, `dto.py` (pydantic), `normalize.py`, `source.py` y `tests/fixtures/` con un recorte real documentado.
 - `core/`: `http.py` (cliente httpx con límites) y `locks.py` (`advisory_lock`). `ExternalServiceError` añadido a `core/exceptions.py`.
 - import-linter (5 contratos, verificados con violaciones de prueba): `core` no importa `config`, `apps` ni `integrations`; `integrations` solo importa `apps.earthquakes.ports` y nada de Django; capas `management > services > selectors > models > ports`; servicios, selectors y modelos no importan `integrations`. El comando es la raíz de composición (`build_sync_service()`).
+
+### Resultado real de la Fase 2 (diferencias con el árbol)
+
+- `apps/earthquakes/domain.py`: límites, `Window`, `Coverage`, `BBox`, `EarthquakeFilters`, `Ordering`, `resolve_window` y errores `InvalidFilters`/`EventNotFound`. `api/` con `filters.py` (parámetros → dominio), `serializers.py` (salida y documentación del contrato), `views.py` y `urls.py`. `meta` vive en `earthquakes` (no hizo falta `catalog_meta`).
+- `selectors.py` añade `get_data_state` (versión de datos + cobertura cacheada), `compute_coverage`, `filter_events`, `list_events`, `map_points` y `get_event`.
+- `core/api/pagination.py` es un paginador keyset propio (no `CursorPagination` de DRF, D53); `core/api/http_cache.py` (ETag, 304, `Cache-Control`, caché de aplicación); `core/api/throttling.py`; `core/cache.py` (claves canónicas y acceso a Redis que no rompe peticiones).
+- `config/api_router.py` monta las rutas bajo `/api/v1/`. `backend/openapi/schema.yaml` (generado) y `frontend/src/shared/api/{schema.d.ts,client.ts,errors.ts}`.
+- `make schema` regenera contrato y tipos; `make contract` (incluido en `make check`) y `.github/workflows/contract.yml` fallan si están desactualizados.
+- import-linter: capas `api | management > services > selectors > models > domain | ports`; la API no puede importar `services` (escritura).
+- Tests de Redis en la base 15, vaciada antes de cada test (`conftest.py`).

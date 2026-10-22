@@ -1,0 +1,79 @@
+# El contrato OpenAPI lo genera el backend; los tipos del frontend salen de él.
+# Falla si alguno de los dos archivos versionados no coincide con lo regenerado.
+name: contract
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "frontend/src/shared/api/**"
+      - "frontend/package.json"
+      - "frontend/pnpm-lock.yaml"
+      - ".github/workflows/contract.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - "frontend/src/shared/api/**"
+      - "frontend/package.json"
+      - "frontend/pnpm-lock.yaml"
+      - ".github/workflows/contract.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  openapi:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    # Generar el esquema no conecta con la base ni con Redis; solo necesita settings.
+    env:
+      DJANGO_SECRET_KEY: ci-only-not-a-secret # pragma: allowlist secret
+      DB_NAME: terramova
+      DB_USER: terramova
+      DB_PASSWORD: ci-only-password # pragma: allowlist secret
+      DB_HOST: 127.0.0.1
+      DB_PORT: "5432"
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: "6379"
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: "0.13.4"
+          working-directory: backend
+          cache-dependency-glob: uv.lock  # relativo a working-directory
+
+      - name: Regenerar el esquema OpenAPI
+        working-directory: backend
+        run: |
+          uv sync --locked
+          uv run python manage.py spectacular --file openapi/schema.yaml --validate --fail-on-warn
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: frontend/package.json
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: frontend/.nvmrc
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Regenerar los tipos TypeScript
+        working-directory: frontend
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm gen:api
+
+      - name: Sin diferencias con lo versionado
+        run: git diff --exit-code -- backend/openapi/schema.yaml frontend/src/shared/api/schema.d.ts
