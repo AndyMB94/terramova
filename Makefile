@@ -4,11 +4,12 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
 COMPOSE := docker compose
+FEED ?= day
 PRE_COMMIT := uvx --from pre-commit==4.7.0 pre-commit
 BACKEND := cd backend &&
 FRONTEND := pnpm --dir frontend
 
-.PHONY: help env setup up down logs ps migrate web \
+.PHONY: help env setup up down logs ps migrate sync web \
 	lint lint-backend lint-frontend fmt test test-backend test-frontend build check precommit
 
 help: ## Lista los objetivos disponibles
@@ -38,6 +39,9 @@ ps: ## Estado de los servicios y puertos publicados
 
 migrate: ## Aplica migraciones en el contenedor backend
 	$(COMPOSE) exec backend python manage.py migrate
+
+sync: ## Sincroniza un feed de USGS: make sync FEED=day|week|month
+	$(COMPOSE) exec backend python manage.py sync_earthquakes --feed $(FEED)
 
 web: ## Servidor de desarrollo del frontend en http://127.0.0.1:5173
 	$(FRONTEND) dev

@@ -1,39 +1,41 @@
 # Datos, sincronización y API
 
-Contratos propuestos para implementación; todavía no hay endpoints ejecutables. UTC en almacenamiento y API; intervalos `[start, end)` para evitar solapamientos. Unidades explícitas.
+Modelos y sincronización implementados en Fase 1; los endpoints son contratos propuestos para la Fase 2. UTC en almacenamiento y API; intervalos `[start, end)` para evitar solapamientos. Unidades explícitas.
 
 ## Origen
 
 - Feeds: `https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson`, `all_week.geojson` y `all_month.geojson`.
 - Catálogo: `https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson` con filtros validados por backend.
-- Usar feeds para actividad reciente con sincronización escalonada: `all_day` cada 2–5 min (eventos nuevos), `all_week` cada hora (correcciones) y `all_month` una vez al día (cierre de la ventana). Verificar condiciones y frecuencia de actualización del proveedor y ajustar. Usar `If-Modified-Since`/`ETag` si el servidor los respeta.
+- Usar feeds para actividad reciente con sincronización escalonada: `all_day` cada 2–5 min (eventos nuevos), `all_week` cada hora (correcciones) y `all_month` una vez al día (cierre de la ventana). Verificar condiciones y frecuencia de actualización del proveedor y ajustar. Implementado `If-Modified-Since` (D45): USGS no envía `ETag`, pero `Last-Modified` cambia cada minuto y responde 304. Tamaños medidos el 2026-10-22: `all_month` 7,2 MB (0,9 MB gzip, ~10 000 eventos), `all_week` 1,4 MB, `all_day` 133 KB.
 - El MVP cubre como máximo los últimos 30 días sincronizados. Búsquedas históricas arbitrarias requieren importación acotada posterior; no prometer cobertura de años que no se ha cargado.
 - Cobertura global heterogénea: no comparar cantidades entre países como si la detección fuera uniforme.
-- Retención (propuesta, pendiente de decidir): conservar eventos de más de 30 días (volumen anual del orden de cientos de miles de filas, manejable) pero limitar la API pública a la cobertura declarada en `meta`.
+- Retención (D41): se conservan los eventos de más de 30 días; la API pública se limita a la cobertura declarada en `meta`.
 
 ## Modelos principales
 
 | Modelo | Campos y restricciones principales |
 | --- | --- |
-| Earthquake | UUID interno; source; external_id único con source; occurred_at; source_updated_at; magnitude nullable; magnitude_type; longitude; latitude; depth_km nullable; place; status; event_type; source_url; ingested_at |
-| SyncRun | Estado, ventana consultada, inicio/fin, recibidos/creados/actualizados/rechazados, código de error sin payload sensible |
+| Earthquake (implementado) | UUID interno; source; external_id único con source; `source_ids` (todos los IDs de la fuente, índice GIN; D42); occurred_at; source_updated_at; magnitude nullable; magnitude_type; longitude y latitude con `CHECK` de rango; depth_km nullable; place (≤255); status; event_type (se guardan todos los tipos, D47); source_url (solo `https://earthquake.usgs.gov/`); ingested_at; updated_at |
+| SyncRun (implementado) | source y feed; estado `running`/`succeeded`/`partial`/`failed`; inicio/fin; ventana `[generated − periodo, generated)`; `source_generated_at`; `source_last_modified`; `not_modified`; recibidos/creados/actualizados/sin cambios/fusionados/rechazados; `rejected_reasons` agrupados; `error_code` estable sin payload |
 | ActivitySummary | scope y ventana; idioma; input_hash; versión de prompt; texto validado; modelo; generado_en; estado y fuente |
 | AIBudgetPeriod | Periodo y moneda; límite; costo confirmado y reservado; estado de bloqueo |
 | AIRequest | Clave idempotente, estado, reserva, uso, costo estimado/confirmado, modelo, versión de tarifa y timestamps |
 
-Índices iniciales: occurred_at, source_updated_at y restricción `(source, external_id)`. Medir consultas antes de agregar más. Coordenadas en grados WGS84; profundidad en km, con negativos posibles según la fuente: no rechazarlos sin revisar semántica. Magnitudes negativas pueden ser válidas; no imponer mínimo cero a datos importados.
+Índices iniciales: occurred_at, source_updated_at, GIN sobre source_ids y restricción `(source, external_id)`. Medir consultas antes de agregar más. Coordenadas en grados WGS84; profundidad en km, con negativos posibles según la fuente: no rechazarlos sin revisar semántica. Magnitudes negativas pueden ser válidas; no imponer mínimo cero a datos importados.
 
 ## Ingesta robusta
 
-1. Adquirir bloqueo compartido por tipo de sincronización; salir de forma controlada si ya existe un job activo.
+1. Adquirir un único bloqueo para los tres feeds (D44); salir con código 3 si ya existe un job activo. Las ejecuciones que quedaron en `running` se marcan `failed/interrupted`.
 2. Consultar una URL fija de USGS con timeout, tamaño máximo y reintentos limitados con backoff.
 3. Verificar GeoJSON, tipos de evento, IDs, timestamps y coordenadas. Orden GeoJSON: longitud, latitud, profundidad.
 4. Normalizar; conservar nulos y distinguir tipo de magnitud. Rechazar o registrar registros inválidos sin abortar todo el lote.
 5. Hacer upsert por origen e ID; actualizar solo con información de versión posterior o conforme a política explícita.
-6. Reconsultar ventanas superpuestas para recoger correcciones; no borrar un evento por faltar en un feed posterior. Definir proceso de revisión para fusiones/retracciones de eventos al ampliar alcance.
-7. Registrar resultado e invalidar caché con una versión de datos cuando cambien filas.
+6. Reconsultar ventanas superpuestas para recoger correcciones; no borrar un evento por faltar en un feed posterior. Fusiones: el evento se localiza por cualquiera de sus `source_ids`; si cambia el ID preferido se renombra y si dos filas son el mismo evento se borra la sobrante (D42). Retracciones: pendiente al ampliar alcance.
+7. Registrar resultado en `SyncRun`. La versión de datos es el id del último `SyncRun` correcto que cambió filas (`current_data_version()`); las claves de caché de la Fase 2 la incluyen.
 
-No mantener una transacción DB abierta durante toda una espera HTTP. Proteger el upsert contra carreras con restricción única. El fallo de USGS conserva los datos anteriores y no cambia falsamente el timestamp de éxito.
+Comando: `python manage.py sync_earthquakes --feed day|week|month` (`make sync FEED=…`). Salida 0 correcta, parcial o sin cambios; 1 fallida; 3 otra sincronización en curso.
+
+La descarga ocurre fuera de transacción y el upsert del lote se aplica en una sola transacción (todo o nada). Proteger el upsert contra carreras con restricción única. El fallo de USGS conserva los datos anteriores y no cambia falsamente el timestamp de éxito.
 
 ## Rutas propuestas
 

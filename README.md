@@ -4,7 +4,7 @@ Explorador interactivo de actividad sísmica mundial con globo 3D, mapa 2D, dato
 
 ## Estado del paquete
 
-Fase 0 (base reproducible) implementada el 21 de octubre de 2026: entorno local con frontend, backend, PostgreSQL y Redis, calidad automatizada y CI. Todavía **no** hay datos sísmicos, globo, API pública ni configuración de producción; ver [docs/ROADMAP.md](docs/ROADMAP.md). TerraMova es un nombre provisional; disponibilidad de marca sin comprobar.
+Fase 0 (base reproducible) implementada el 21 de octubre de 2026: entorno local con frontend, backend, PostgreSQL y Redis, calidad automatizada y CI. Fase 1 implementada: sincronización real e idempotente con USGS. Todavía **no** hay API pública, globo ni configuración de producción; ver [docs/ROADMAP.md](docs/ROADMAP.md). TerraMova es un nombre provisional; disponibilidad de marca sin comprobar.
 
 ## Desarrollo local
 
@@ -28,10 +28,12 @@ make setup     # uv sync, pnpm install --frozen-lockfile y hook de pre-commit
 make up        # PostgreSQL, Redis y backend en Docker; espera a que estén sanos
 make migrate   # migraciones explícitas en el contenedor backend
 make web       # frontend en http://127.0.0.1:5173 (proxy de /api y /health al backend)
+make sync FEED=month   # importa los últimos 30 días desde USGS (luego FEED=day o week)
 ```
 
 - Backend: http://127.0.0.1:8100/health/live/ y http://127.0.0.1:8100/health/ready/ (comprueba PostgreSQL y Redis; 503 sin detalles si fallan).
 - Todos los puertos se publican solo en `127.0.0.1`: backend 8100, PostgreSQL 5433, Redis 6380 (con contraseña).
+- `make sync FEED=day|week|month` descarga el feed de USGS y lo guarda sin duplicar; si el feed no cambió, USGS responde 304 y no se descarga nada. Códigos de salida: 0 correcta, 1 fallida, 3 otra sincronización en curso. Cada ejecución queda registrada en `SyncRun` (visible en el admin).
 - `make help` lista todos los objetivos. `make down` detiene los servicios y conserva los datos.
 
 ### Verificación
