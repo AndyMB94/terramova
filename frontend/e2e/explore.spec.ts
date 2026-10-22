@@ -163,7 +163,10 @@ test("error de la API: mensaje claro y reintento", async ({ page }) => {
   await page.goto("/");
 
   const alert = eventList(page).getByRole("alert");
-  await expect(alert).toContainText("El servicio no está disponible temporalmente");
+  // Ante un 5xx la app reintenta dos veces (1 s + 2 s): el aviso tarda más de 3 s en salir.
+  await expect(alert).toContainText("El servicio no está disponible temporalmente", {
+    timeout: 15_000,
+  });
   await expect(alert.getByRole("button", { name: "Reintentar" })).toBeVisible();
 });
 
@@ -273,6 +276,74 @@ test.describe("globo (WebGL por software)", () => {
 
     await expect(page).toHaveURL(/bbox=-?\d/);
     await expect.poll(() => requests.at(-1)?.searchParams.get("bbox") ?? null).not.toBeNull();
+  });
+
+  // El estado del movimiento se refleja en data-intro, data-spin y data-quality del globo.
+  const globe = (page: Page) => page.getByRole("application", { name: /Globo con los eventos/ });
+
+  test("intro una vez por pestaña, giro tras 8 s sin actividad y botón para pausarlo", async ({
+    page,
+  }) => {
+    // Esperan la inactividad de 8 s: más que el límite habitual de 30 s.
+    test.slow();
+    await mockApi(page);
+    await page.goto("/");
+    await expect(globe(page)).toHaveAttribute("data-intro", /playing|done/);
+    await expect(globe(page)).toHaveAttribute("data-spin", "on", { timeout: 25_000 });
+
+    const pause = page.getByRole("button", { name: "Pausar giro" });
+    await pause.click();
+    await expect(page.getByRole("button", { name: "Reanudar giro" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect(globe(page)).toHaveAttribute("data-spin", "off");
+    // Pausado, no vuelve a girar aunque pase el tiempo de inactividad.
+    await page.waitForTimeout(9_000);
+    await expect(globe(page)).toHaveAttribute("data-spin", "off");
+
+    await page.reload();
+    await expect(globe(page)).toHaveAttribute("data-intro", "skipped");
+    await expect(page.getByRole("button", { name: "Reanudar giro" })).toBeVisible();
+  });
+
+  test("con un evento abierto el globo no gira", async ({ page }) => {
+    // Esperan la inactividad de 8 s: más que el límite habitual de 30 s.
+    test.slow();
+    await mockApi(page);
+    await page.goto(`/?event=${PANAMA.id}`);
+    await expect(page.getByRole("region", { name: "192 km al S de Burica, Panama" })).toBeVisible();
+    await page.waitForTimeout(9_000);
+    await expect(globe(page)).toHaveAttribute("data-spin", "off");
+  });
+
+  test("movimiento reducido: sin intro, sin giro y sin botón de pausa", async ({ page }) => {
+    // Esperan la inactividad de 8 s: más que el límite habitual de 30 s.
+    test.slow();
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await mockApi(page);
+    await page.goto("/");
+    await expect(globe(page)).toHaveAttribute("data-intro", "skipped");
+    await expect(page.getByRole("button", { name: "Pausar giro" })).toHaveCount(0);
+    await page.waitForTimeout(9_000);
+    await expect(globe(page)).toHaveAttribute("data-spin", "off");
+  });
+
+  test("calidad: la automática baja si los fps caen y el selector la fuerza", async ({ page }) => {
+    // Esperan la inactividad de 8 s: más que el límite habitual de 30 s.
+    test.slow();
+    await mockApi(page);
+    await page.goto("/");
+    const quality = page.getByLabel("Calidad");
+    // Por software los fps son bajos: al girar se mide y se pasa a calidad baja.
+    await expect(globe(page)).toHaveAttribute("data-quality", "low", { timeout: 30_000 });
+    await expect(quality.locator("option:checked")).toHaveText("Automática (baja)");
+
+    await quality.selectOption("high");
+    await expect(globe(page)).toHaveAttribute("data-quality", "high");
+    await page.reload();
+    await expect(page.getByLabel("Calidad")).toHaveValue("high");
+    await expect(globe(page)).toHaveAttribute("data-quality", "high");
   });
 });
 

@@ -285,3 +285,9 @@ Solo esto; el resto llega con su fase.
 - `features/explore/lab/PerformanceLab.tsx`: laboratorio de fps, enlazado solo en desarrollo.
 - `frontend/public/imagery/blue-marble/{z}/{x}/{y}.jpg` y `frontend/public/geo/borders-110m.geojson`, generados por `infra/scripts/build_globe_assets.py`.
 - `map/MapArea.tsx` decide entre globo y aviso sin WebGL según la disponibilidad que fija la página.
+
+### Resultado real de la Fase 3 · PR 3 (movimiento)
+
+- `features/explore/globe/`: `effects.ts` (parámetros y cálculos puros: giro, selección y fotograma de ondas), `quality.ts` (perfiles alto/bajo, elección automática y medidor de fps, puro), `motion.ts` (`GlobeMotion`: intro, giro en inactividad y vuelos con un único director enganchado a `scene.preUpdate`), `ripples.ts` (`RippleLayer`, colección aparte bajo los puntos). `points.ts` añade `HorizonCuller` compartido y el halo de selección; `geometry.ts`, el desplazamiento para no tapar el punto con la ficha.
+- En vez de los hooks `useIntroFlight`/`useIdleSpin`/`useRipples` previstos, clases sin React como en el PR 2: el estado cambia en cada fotograma y no debe provocar renderizados.
+- `shared/lib/storage.ts`: `readSession`/`writeSession` (intro y calidad medida, por pestaña). `shared/styles/index.css`: entrada de paneles.

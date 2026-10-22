@@ -41,7 +41,7 @@ export function EventDetail({ event, status, error, onClose, className }: EventD
     <section
       aria-labelledby={headingId}
       className={cn(
-        "flex flex-col gap-3.5 rounded-lg border border-border bg-surface/[.97] p-[18px] shadow-[0_18px_50px_rgba(0,0,0,0.45)]",
+        "animate-panel-in flex flex-col gap-3.5 rounded-lg border border-border bg-surface/[.97] p-[18px] shadow-[0_18px_50px_rgba(0,0,0,0.45)]",
         className,
       )}
     >

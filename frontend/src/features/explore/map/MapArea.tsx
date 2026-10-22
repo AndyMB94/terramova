@@ -13,6 +13,7 @@ interface MapAreaProps {
   focus: { id: string; nonce: number } | null;
   onSelect: (id: string) => void;
   reducedMotion: boolean;
+  rightInsetPx: number;
   apiRef: GlobeApiRef;
   /** La página decide si hay globo (WebGL) y se entera si Cesium falla al crearse. */
   available: boolean;

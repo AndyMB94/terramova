@@ -41,3 +41,29 @@ export function rectangleToBbox(rect: DegreesRectangle): string | null {
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
+
+const EARTH_RADIUS_M = 6_371_000;
+/** Cerca de los polos un desplazamiento en longitud se dispararía; se limita. */
+const MIN_LATITUDE_COS = 0.3;
+
+/**
+ * Longitud a la que apuntar la cámara para que un punto quede `offsetPx` píxeles a la
+ * izquierda del centro (con el norte arriba). Sirve para no dejar el evento tapado por la
+ * ficha. Aproximación cerca del nadir, suficiente para centrar a ojo.
+ */
+export function longitudeForScreenOffset(options: {
+  longitude: number;
+  latitude: number;
+  heightM: number;
+  offsetPx: number;
+  canvasHeightPx: number;
+  fovyRadians: number;
+}): number {
+  const { longitude, latitude, heightM, offsetPx, canvasHeightPx, fovyRadians } = options;
+  if (offsetPx <= 0 || canvasHeightPx <= 0) return longitude;
+  const metersPerPx = (2 * heightM * Math.tan(fovyRadians / 2)) / canvasHeightPx;
+  const cos = Math.max(Math.cos((latitude * Math.PI) / 180), MIN_LATITUDE_COS);
+  const degrees = ((offsetPx * metersPerPx) / (EARTH_RADIUS_M * cos)) * (180 / Math.PI);
+  const shifted = longitude + Math.min(degrees, 90);
+  return shifted > 180 ? shifted - 360 : shifted;
+}

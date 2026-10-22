@@ -17,3 +17,20 @@ export function writePreference(key: string, value: string | null): void {
     // Sin almacenamiento la preferencia dura solo esta visita; no es un error.
   }
 }
+
+/** Igual que las preferencias, pero solo durante esta pestaña (sessionStorage). */
+export function readSession(key: string): string | null {
+  try {
+    return window.sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+export function writeSession(key: string, value: string): void {
+  try {
+    window.sessionStorage.setItem(key, value);
+  } catch {
+    // Sin almacenamiento de sesión se repetiría la intro al recargar; no es un error.
+  }
+}
