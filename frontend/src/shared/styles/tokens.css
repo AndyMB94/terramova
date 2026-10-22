@@ -1,0 +1,22 @@
+/*
+ * Tokens de diseño. En Fase 0 solo existen los tokens de movimiento propuestos en
+ * docs/UI_UX.md y la base neutra de shadcn (index.css). La paleta, tipografía y
+ * escala definitivas se fijan en Fase 3 tras moodboard y wireframes.
+ */
+:root {
+  --duration-instant: 100ms;
+  --duration-fast: 150ms;
+  --duration-base: 220ms;
+  --duration-slow: 350ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-instant: 0ms;
+    --duration-fast: 0ms;
+    --duration-base: 0ms;
+    --duration-slow: 0ms;
+  }
+}

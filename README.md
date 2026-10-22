@@ -4,7 +4,49 @@ Explorador interactivo de actividad sísmica mundial con globo 3D, mapa 2D, dato
 
 ## Estado del paquete
 
-Plan inicial · 21 de octubre de 2026 · revisión 2 (estructura detallada, escalabilidad de lectura, contrato generado y sistema de movimiento). Este paquete contiene documentación para implementar el proyecto; no contiene una aplicación funcional, configuración de producción ni pruebas ejecutadas. Las casillas del roadmap empiezan pendientes. TerraMova es un nombre provisional; disponibilidad de marca sin comprobar.
+Fase 0 (base reproducible) implementada el 21 de octubre de 2026: entorno local con frontend, backend, PostgreSQL y Redis, calidad automatizada y CI. Todavía **no** hay datos sísmicos, globo, API pública ni configuración de producción; ver [docs/ROADMAP.md](docs/ROADMAP.md). TerraMova es un nombre provisional; disponibilidad de marca sin comprobar.
+
+## Desarrollo local
+
+Comandos comprobados en WSL2 (Ubuntu 24.04) el 2026-10-21, incluido un checkout limpio.
+
+### Requisitos
+
+| Herramienta | Versión usada | Notas |
+| --- | --- | --- |
+| Docker Engine + Compose | 28.3.3 / 2.39.1 | Docker Desktop con integración WSL también sirve |
+| uv | 0.13.4 | Instala Python 3.13 automáticamente. [Instalación](https://docs.astral.sh/uv/getting-started/installation/) |
+| Node.js | 22 LTS (≥ 22.22.2) | Ver `frontend/.nvmrc` |
+| pnpm | 11.17.0 | Fijado en `frontend/package.json` (`packageManager`) |
+| make, python3 | — | `python3` del sistema solo ejecuta `infra/scripts/create_dev_env.py` |
+
+### Primer arranque
+
+```bash
+make env       # crea .env desde .env.example con secretos aleatorios (no sobrescribe)
+make setup     # uv sync, pnpm install --frozen-lockfile y hook de pre-commit
+make up        # PostgreSQL, Redis y backend en Docker; espera a que estén sanos
+make migrate   # migraciones explícitas en el contenedor backend
+make web       # frontend en http://127.0.0.1:5173 (proxy de /api y /health al backend)
+```
+
+- Backend: http://127.0.0.1:8100/health/live/ y http://127.0.0.1:8100/health/ready/ (comprueba PostgreSQL y Redis; 503 sin detalles si fallan).
+- Todos los puertos se publican solo en `127.0.0.1`: backend 8100, PostgreSQL 5433, Redis 6380 (con contraseña).
+- `make help` lista todos los objetivos. `make down` detiene los servicios y conserva los datos.
+
+### Verificación
+
+```bash
+make check      # lint + formato + tipos + reglas de capas + tests + build (lo mismo que la CI)
+make precommit  # hooks de pre-commit, incluida la detección de secretos
+```
+
+Los tests del backend usan PostgreSQL y Redis reales: requieren `make up`. La CI (`.github/workflows/`) ejecuta lo mismo con servicios efímeros y sin secretos.
+
+### Problemas conocidos
+
+- `fork/exec /usr/local/lib/docker/cli-plugins/docker-buildx: no such file or directory` al hacer `make up`: quedan enlaces rotos de una integración antigua de Docker Desktop que ocultan el plugin del Docker Engine nativo. Solución puntual: `COMPOSE_BAKE=false make up`. Solución permanente (decisión del propietario de la máquina): reactivar la integración WSL de Docker Desktop o eliminar los enlaces rotos (`sudo find /usr/local/lib/docker/cli-plugins -xtype l -delete`).
+- `docker-credential-desktop.exe: executable file not found` al descargar imágenes: `~/.docker/config.json` apunta al helper de Docker Desktop. Añade `/mnt/c/Program Files/Docker/Docker/resources/bin` al `PATH` o quita `"credsStore"` de ese archivo si no usas Docker Desktop.
 
 ## Comenzar en VS Code con Claude Code
 
@@ -55,4 +97,4 @@ El sistema describe eventos publicados: no predice terremotos, no es un sistema 
 - `v0.3.0`: resúmenes de IA limitados, tras demostrar controles de gasto.
 - `v1.0.0`: despliegue verificado, accesibilidad y documentación de portafolio.
 
-Las versiones son hitos de producto, no promesas de calendario. Los comandos definitivos de instalación y ejecución se documentarán al crear la aplicación y deben corresponder a comandos comprobados.
+Las versiones son hitos de producto, no promesas de calendario. Los comandos de "Desarrollo local" se actualizan solo cuando se han comprobado.

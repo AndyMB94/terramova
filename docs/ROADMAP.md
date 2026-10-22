@@ -1,23 +1,23 @@
 # Roadmap ejecutable
 
-Todas las tareas están pendientes. Marca una casilla únicamente al verificar su resultado. Cada fase termina con revisión del diff, evidencia de pruebas y actualización de decisiones. No se asignan fechas hasta conocer disponibilidad y experiencia del desarrollador.
+Marca una casilla únicamente al verificar su resultado. Cada fase termina con revisión del diff, evidencia de pruebas y actualización de decisiones. No se asignan fechas hasta conocer disponibilidad y experiencia del desarrollador.
 
 ## Fase 0 — Base reproducible
 
 Dependencias: ninguna; conservar cualquier código preexistente.
 
-- [ ] Inspeccionar proyecto y Git; documentar diferencias frente al plan.
-- [ ] Verificar versiones compatibles de Python, Node, Django, React, Vite, Cesium y UI.
-- [ ] Crear frontend React/TypeScript y backend Django/DRF siguiendo la sección "Fase 0" de docs/STRUCTURE.md.
-- [ ] `Makefile` como punto de entrada (`up`, `test`, `lint`, `fmt`) y `compose.yaml` + override de desarrollo.
-- [ ] Añadir PostgreSQL y Redis al entorno local con configuración por entorno.
-- [ ] Crear `.env.example` sin claves; configurar `.gitignore` y exclusiones de build.
-- [ ] Configurar lint, formato, tipos, pruebas y lockfiles.
-- [ ] Configurar import-linter (backend) y reglas de imports por feature (frontend) en CI.
-- [ ] pre-commit con formato y detección de secretos.
-- [ ] Crear comandos reproducibles de arranque y verificación; documentarlos en README.
-- [ ] Crear CI básica sin secretos ni acceso a APIs externas pagadas.
-- [ ] Exponer salud mínima del backend y pantalla inicial del frontend.
+- [x] Inspeccionar proyecto y Git; documentar diferencias frente al plan.
+- [x] Verificar versiones compatibles de Python, Node, Django, React, Vite, Cesium y UI. (Cesium: solo versión vigente consultada; su integración con Vite se valida en el spike de Fase 3.)
+- [x] Crear frontend React/TypeScript y backend Django/DRF siguiendo la sección "Fase 0" de docs/STRUCTURE.md.
+- [x] `Makefile` como punto de entrada (`up`, `test`, `lint`, `fmt`) y `compose.yaml` + override de desarrollo.
+- [x] Añadir PostgreSQL y Redis al entorno local con configuración por entorno.
+- [x] Crear `.env.example` sin claves; configurar `.gitignore` y exclusiones de build.
+- [x] Configurar lint, formato, tipos, pruebas y lockfiles.
+- [ ] Configurar import-linter (backend) y reglas de imports por feature (frontend) en CI. (Configurado y verificado en local; falta ver los workflows ejecutarse en GitHub.)
+- [x] pre-commit con formato y detección de secretos.
+- [x] Crear comandos reproducibles de arranque y verificación; documentarlos en README.
+- [ ] Crear CI básica sin secretos ni acceso a APIs externas pagadas. (Workflows creados y validados con actionlint; pendientes de ejecutarse en GitHub tras un push autorizado.)
+- [x] Exponer salud mínima del backend y pantalla inicial del frontend.
 
 Aceptación: desde un checkout limpio, instalar y levantar ambos servicios siguiendo README; pipeline básico en verde; ningún secreto versionado. No se exige globo ni llamadas a USGS todavía.
 
@@ -133,3 +133,4 @@ Aceptación: demo HTTPS reproducible, acceso admin protegido, DB/Redis no públi
 | --- | --- | --- | --- |
 | 2026-10-21 | Plan inicial | Documentación entregada; aplicación aún no implementada | Comenzar Fase 0 |
 | 2026-10-21 | Revisión 2 del plan | STRUCTURE.md; decisiones D16–D24; sistema de movimiento en UI_UX.md | Comenzar Fase 0 |
+| 2026-10-21 | Fase 0 (rama local `chore/phase-0-base`, sin commit) | `make check` en verde (ruff, mypy, import-linter, 9 tests pytest con PostgreSQL/Redis reales, ESLint con reglas de imports probadas con violaciones, Prettier, tsc, 2 tests Vitest, build); `make up` con servicios sanos solo en 127.0.0.1 (8100/5433/6380, confirmado con `ss`); `/health/live/` y `/health/ready/` 200, ready 503 sin detalles con Redis detenido; Redis rechaza sin contraseña; checkout limpio simulado (`make env/setup/up/migrate/check`) en verde; pre-commit y detect-secrets sin hallazgos en 74 archivos (detector probado con secretos plantados); `.env` ignorado; actionlint sin errores. Decisiones D28–D40 | CI pendiente de ejecutarse en GitHub (requiere push autorizado). Fase 1 tras revisión y commit |

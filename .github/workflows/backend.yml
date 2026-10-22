@@ -1,0 +1,89 @@
+name: backend
+
+on:
+  push:
+    branches: [main]
+    paths: ["backend/**", ".github/workflows/backend.yml"]
+  pull_request:
+    paths: ["backend/**", ".github/workflows/backend.yml"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+
+    # Servicios efímeros solo para esta ejecución. Credenciales de CI sin valor fuera
+    # del runner; nunca se usan secretos del repositorio ni APIs externas.
+    services:
+      postgres:
+        image: postgres:18.6-alpine
+        env:
+          POSTGRES_DB: terramova
+          POSTGRES_USER: terramova
+          POSTGRES_PASSWORD: ci-only-password # pragma: allowlist secret
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U terramova -d terramova"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:8.6.7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+
+    env:
+      DJANGO_SECRET_KEY: ci-only-not-a-secret # pragma: allowlist secret
+      DB_NAME: terramova
+      DB_USER: terramova
+      DB_PASSWORD: ci-only-password # pragma: allowlist secret
+      DB_HOST: 127.0.0.1
+      DB_PORT: "5432"
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: "6379"
+      AI_ENABLED: "false"
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: "0.13.4"
+          working-directory: backend
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Instalar dependencias (lockfile)
+        run: uv sync --locked
+
+      - name: Ruff (lint)
+        run: uv run ruff check .
+
+      - name: Ruff (formato)
+        run: uv run ruff format --check .
+
+      - name: mypy
+        run: uv run mypy .
+
+      - name: Reglas de capas (import-linter)
+        run: uv run lint-imports
+
+      - name: Django check
+        run: uv run python manage.py check --settings=config.settings.test
+
+      - name: Migraciones pendientes
+        run: uv run python manage.py makemigrations --check --dry-run --settings=config.settings.test
+
+      - name: pytest
+        run: uv run pytest

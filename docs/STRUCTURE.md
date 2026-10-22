@@ -243,3 +243,12 @@ Solo esto; el resto llega con su fase.
 - `frontend/`: Vite + TS strict + Tailwind + shadcn init, `app/` con router y QueryClient, una página inicial, un test de Vitest.
 - `.github/workflows/backend.yml` y `frontend.yml`.
 - import-linter y reglas de imports del frontend ya configurados (con pocas reglas, crecen con las apps).
+
+### Resultado real de la Fase 0 (diferencias con el árbol)
+
+- Raíz: además, `.gitattributes` (LF), `.secrets.baseline` (detect-secrets) e `infra/scripts/create_dev_env.py` (genera `.env` con secretos aleatorios; `make env`).
+- `.github/workflows/repo.yml`: pre-commit sobre todo el repositorio (D39).
+- Backend: `core/exceptions.py` contiene solo `DomainError`; `ExternalServiceError`, `api_router.py`, `pagination.py`, `locks.py`, etc. llegan con su fase. Tests de `core` en `core/tests/`. `wsgi.py`/`asgi.py` exigen `DJANGO_SETTINGS_MODULE` explícito; `manage.py` usa `dev` por omisión.
+- Frontend: la página inicial es `features/explore/ExplorePage.tsx` (marcador "en construcción", sin datos). Los alias de shadcn (`components.json`) apuntan a `@/shared/ui`, `@/shared/lib/utils` y `@/shared/hooks`. CSS en `shared/styles/index.css` + `tokens.css` (solo tokens de movimiento por ahora).
+- Reglas de imports del frontend (D33): fuera de la carpeta actual se importa con `@/`, nunca con `../`; otra feature solo vía `@/features/<nombre>`; `shared/` no importa `features/` ni `app/`; `features/` no importa `app/`. Los tests de rutas viven en `app/`.
+- import-linter (backend): por ahora `core` no puede importar `config`; los contratos de `apps/` e `integrations/` se añaden cuando existan esos paquetes.
