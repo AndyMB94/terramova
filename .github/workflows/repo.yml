@@ -33,3 +33,16 @@ jobs:
         run: uvx --from pre-commit==4.7.0 pre-commit run --all-files --show-diff-on-failure
         env:
           SKIP: prettier-frontend
+
+  # Reglas de red de docs/DEPLOYMENT.md: un Compose que publique DB/Redis o algo fuera de
+  # 127.0.0.1 es un fallo bloqueante (CLAUDE.md).
+  network-rules:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Reglas de red de Compose (desarrollo y producción)
+        run: make check-ports

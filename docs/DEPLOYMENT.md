@@ -52,7 +52,7 @@ Antes de fijar 8100, comprobar en el VPS que está libre (`ss -tlnp | grep 8100`
 
 ## Bloque Nginx de referencia
 
-Referencia para revisar en Fase 6, no configuración probada. Certbot añadirá las líneas de certificado y la redirección 80→443.
+**Configuración real: `infra/nginx/terramova.andymallcco.dev.conf`** (Fase 6 · PR 1, probada en local con un Nginx real y un navegador, D114). Añade cabecera `X-Request-ID`, CSP ajustada a Cesium, admin tras contraseña de Nginx y estáticos del admin. El bloque de abajo queda como referencia histórica. Certbot añadirá las líneas de certificado y la redirección 80→443.
 
 ```nginx
 # Fuera de server{}: los archivos de sites-enabled se incluyen en el contexto http

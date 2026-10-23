@@ -1,0 +1,81 @@
+# Producción en el VPS: docker compose -f compose.yaml -f compose.prod.yaml up -d
+# Reglas de red (docs/DEPLOYMENT.md), comprobadas en CI por infra/scripts/check_compose_ports.py:
+#   - db y redis NO publican ningún puerto (sin sección ports).
+#   - backend publica solo 127.0.0.1:8100; Nginx del host es el único punto público.
+# Los límites de memoria son provisionales hasta inventariar el VPS (compartido con
+# Vacantia y el portafolio): TerraMova no debe poder quitarles recursos.
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-app-hardening: &app-hardening
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+services:
+  db:
+    logging: *logging
+    mem_limit: 512m
+
+  redis:
+    logging: *logging
+    mem_limit: 192m
+
+  backend:
+    image: terramova/backend:local
+    <<: *app-hardening
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+      DJANGO_DEBUG: "false"
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:?Define DJANGO_ALLOWED_HOSTS en .env}
+      DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS:?Define DJANGO_CSRF_TRUSTED_ORIGINS en .env}
+      # Un proxy de confianza delante: el Nginx del host.
+      API_NUM_PROXIES: "1"
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
+    ports:
+      - "127.0.0.1:8100:8000"
+    tmpfs:
+      - /tmp
+    logging: *logging
+    mem_limit: 512m
+
+  scheduler:
+    # Misma imagen y configuración que el backend; sin puertos ni comprobación HTTP.
+    image: terramova/backend:local
+    pull_policy: never
+    <<: *app-hardening
+    command: ["supercronic", "-json", "deploy/crontab"]
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS}
+      DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: db
+      DB_PORT: "5432"
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_DB: ${REDIS_DB:-0}
+      AI_ENABLED: "false"
+    healthcheck:
+      disable: true
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - internal
+    tmpfs:
+      - /tmp
+    logging: *logging
+    mem_limit: 256m
+    restart: unless-stopped

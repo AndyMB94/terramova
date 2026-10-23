@@ -32,6 +32,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "core.logging.RequestIdMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -159,4 +160,22 @@ LOGGING = {
     "disable_existing_loggers": False,
     "handlers": {"console": {"class": "logging.StreamHandler"}},
     "root": {"handlers": ["console"], "level": "INFO"},
+}
+
+# Producción (prod.py): una línea JSON por evento, con el identificador de la petición.
+JSON_LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "filters": {"request_id": {"()": "core.logging.RequestIdFilter"}},
+    "formatters": {"json": {"()": "core.logging.JsonFormatter"}},
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "json",
+            "filters": ["request_id"],
+        }
+    },
+    "root": {"handlers": ["console"], "level": "INFO"},
+    # Las peticiones las registra Gunicorn (gunicorn.conf.py); Django solo sus avisos.
+    "loggers": {"django.request": {"level": "WARNING"}},
 }

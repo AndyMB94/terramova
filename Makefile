@@ -93,5 +93,15 @@ build: ## Compila el frontend
 
 check: lint contract test build ## Todo lo que ejecuta la CI
 
+# Valores de relleno: solo sirven para que Compose resuelva la configuración.
+COMPOSE_CHECK_ENV = DB_NAME=x DB_USER=x DB_PASSWORD=x REDIS_PASSWORD=x DJANGO_SECRET_KEY=x \
+	DJANGO_ALLOWED_HOSTS=x DJANGO_CSRF_TRUSTED_ORIGINS=https://x
+
+check-ports: ## Falla si algún Compose incumple las Reglas de red (docs/DEPLOYMENT.md)
+	$(COMPOSE_CHECK_ENV) docker compose --env-file /dev/null -f compose.yaml -f compose.override.yaml config --format json \
+		| python3 infra/scripts/check_compose_ports.py
+	$(COMPOSE_CHECK_ENV) docker compose --env-file /dev/null -f compose.yaml -f compose.prod.yaml config --format json \
+		| python3 infra/scripts/check_compose_ports.py --prod
+
 precommit: ## Ejecuta los hooks de pre-commit sobre todo el repositorio
 	$(PRE_COMMIT) run --all-files
