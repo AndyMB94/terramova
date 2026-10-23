@@ -82,6 +82,41 @@ export function AboutPage() {
         <li>Tipografías Geist y Geist Mono (licencia SIL Open Font), autoalojadas.</li>
       </ul>
 
+      <h2 className="mt-8 text-lg font-semibold">Privacidad</h2>
+      <ul className="mt-3 list-disc space-y-2 pl-5 text-tertiary">
+        <li>No hay cuentas ni cookies en la parte pública, ni analítica de visitas.</li>
+        <li>
+          Todo se sirve desde este servidor (datos, mapas, fronteras y tipografías): tu navegador no
+          contacta con servicios de terceros al usar TerraMova.
+        </li>
+        <li>
+          Tus preferencias (tema, movimiento, calidad del globo) y tus favoritos se guardan solo en
+          tu navegador. Puedes borrar los favoritos desde su pestaña y el resto desde los ajustes
+          del navegador.
+        </li>
+        <li>
+          El servidor anota cada petición (incluida la dirección IP) en sus registros técnicos de
+          acceso, para seguridad y diagnóstico, y los borra a los 14 días. La aplicación no guarda
+          direcciones IP en sus propios registros.
+        </li>
+        <li>No se usa inteligencia artificial.</li>
+      </ul>
+
+      <h2 className="mt-8 text-lg font-semibold">Código</h2>
+      <p className="mt-3 text-tertiary">
+        El código de TerraMova es abierto, con licencia MIT, y está en{" "}
+        <a
+          className="text-primary hover:underline"
+          href="https://github.com/AndyMB94/terramova"
+          target="_blank"
+          rel="noreferrer"
+        >
+          GitHub
+        </a>
+        . Los datos, las imágenes, las fronteras y las tipografías conservan las licencias indicadas
+        arriba.
+      </p>
+
       <p className="mt-10">
         <Link to="/" className="text-primary hover:underline">
           Volver a explorar

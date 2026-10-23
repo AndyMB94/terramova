@@ -314,3 +314,7 @@ Solo esto; el resto llega con su fase.
 - Raíz: `compose.prod.yaml` (se usa junto a `compose.yaml`), `.env.prod.example` (plantilla sin secretos; el `.gitignore` la exceptúa) y objetivo `make check-ports`.
 - `backend/`: `config/settings/prod.py`, `gunicorn.conf.py`, `deploy/crontab` (scheduler), `core/logging.py` (request ID y formato JSON) y la imagen con Gunicorn, supercronic y estáticos del admin.
 - `infra/nginx/terramova.andymallcco.dev.conf` y `infra/scripts/check_compose_ports.py`. `frontend/src/shared/lib/zod-config.ts` (importado el primero en `main.tsx`).
+
+### Resultado real de la Fase 6 · PR 2 (operación)
+
+- `infra/scripts/backup_db.sh` y `infra/scripts/restore_check.sh`; `infra/load/explore.js` (k6). Objetivo `make audit`. `LICENSE` (MIT) en la raíz.

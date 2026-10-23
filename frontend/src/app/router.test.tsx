@@ -24,6 +24,14 @@ describe("router", () => {
     expect(screen.getByText(/no es un sistema oficial de alerta/)).toBeInTheDocument();
   });
 
+  it("acerca explica la privacidad y la licencia del código", () => {
+    renderRoutes(routes, "/acerca");
+
+    expect(screen.getByRole("heading", { name: "Privacidad" })).toBeInTheDocument();
+    expect(screen.getByText(/los borra a los 14 días/)).toBeInTheDocument();
+    expect(screen.getByText(/con licencia MIT/)).toBeInTheDocument();
+  });
+
   it("una ruta desconocida muestra la página no encontrada", () => {
     renderRoutes(routes, "/no-existe");
 

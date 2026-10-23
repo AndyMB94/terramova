@@ -138,9 +138,29 @@ No ejecutar un comando remoto de instalación descargado sin inspección. No mos
 
 ## Backups y rollback
 
-Definir frecuencia según cambios y recursos; propuesta inicial: backup diario cifrado de PostgreSQL, con retención limitada y copia fuera del disco del VPS. El destino y costo se deciden con el propietario; no asumir almacenamiento externo gratuito.
+Implementado y probado en local en la Fase 6 · PR 2 (D118–D120). Los comandos se ejecutan desde `/root/terramova`.
 
-Probar restauración en una base aislada antes de publicar. Versionar configuración sin secretos. Para rollback de código mantener artefacto anterior; las migraciones pueden ser incompatibles hacia atrás, por lo que se necesita estrategia explícita de migraciones compatibles o restauración. Nunca prometer rollback con solo `git checkout`.
+### Copias de PostgreSQL
+
+- `infra/scripts/backup_db.sh` crea `backups/terramova-<fecha UTC>.dump` (formato custom) con su SHA-256, comprueba que se puede leer, deja permisos `600` y borra las de más de `BACKUP_KEEP_DAYS` (14 por defecto). No necesita credenciales: las lee dentro del contenedor.
+- Frecuencia propuesta: diaria. Cómo programarla en el VPS (cron del host o servicio de Compose) se decide en el plan de despliegue, con autorización.
+- **Pendiente de decisión (D119):** copia fuera del VPS y cifrado. Hasta entonces, las copias viven en el mismo disco: protegen frente a errores de datos o migraciones, no frente a perder el servidor. Los eventos se pueden volver a importar de USGS (30 días); el historial de sincronizaciones no.
+
+### Prueba de restauración
+
+`infra/scripts/restore_check.sh backups/<copia>.dump` verifica el SHA-256 y restaura en un PostgreSQL temporal **sin red** (misma versión que `compose.yaml`), muestra el número de eventos, sincronizaciones y migraciones, y borra el contenedor. Hacerla tras cada cambio de esquema y periódicamente. Probado: copia real restaurada con los mismos 10.264 eventos; una copia con un byte cambiado o truncada se rechaza.
+
+### Restauración real (solo si hace falta, con copia verificada)
+
+1. `docker compose -f compose.yaml -f compose.prod.yaml stop backend scheduler`
+2. `docker compose -f compose.yaml -f compose.prod.yaml exec -T db sh -c 'pg_restore --clean --if-exists --no-owner -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < backups/<copia>.dump`
+3. `docker compose -f compose.yaml -f compose.prod.yaml start backend scheduler` y comprobar `/health/ready/` (desde el VPS) y `/api/v1/meta/`.
+
+### Rollback de código
+
+- **Backend:** cada despliegue construye la imagen con `TERRAMOVA_IMAGE_TAG=<commit corto>` y conserva la anterior. Volver atrás = arrancar con la etiqueta anterior (`TERRAMOVA_IMAGE_TAG=<anterior> docker compose ... up -d backend scheduler`), sin reconstruir.
+- **Frontend:** cada versión en su carpeta (`/var/www/terramova-releases/<commit>`) y `/var/www/terramova` como enlace simbólico; volver = apuntar el enlace a la anterior. Nginx no necesita recarga.
+- **Migraciones:** se escriben compatibles hacia atrás (añadir antes de quitar), para que la versión anterior del código funcione con el esquema nuevo. Copia verificada antes de migrar. Si una migración no fuera compatible, el rollback es restaurar la copia: se pierde lo escrito desde entonces (recuperable de USGS en su mayoría). Nunca prometer rollback con solo `git checkout`.
 
 ## Operación y costos
 

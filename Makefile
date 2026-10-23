@@ -93,6 +93,11 @@ build: ## Compila el frontend
 
 check: lint contract test build ## Todo lo que ejecuta la CI
 
+audit: ## Vulnerabilidades conocidas en las dependencias de producción (backend y frontend)
+	cd backend && uv export --no-dev --frozen --no-hashes --no-emit-project > /tmp/terramova-requirements.txt
+	uvx --from pip-audit==2.10.0 pip-audit -r /tmp/terramova-requirements.txt --disable-pip --no-deps
+	pnpm --dir frontend audit --prod
+
 # Valores de relleno: solo sirven para que Compose resuelva la configuración.
 COMPOSE_CHECK_ENV = DB_NAME=x DB_USER=x DB_PASSWORD=x REDIS_PASSWORD=x DJANGO_SECRET_KEY=x \
 	DJANGO_ALLOWED_HOSTS=x DJANGO_CSRF_TRUSTED_ORIGINS=https://x

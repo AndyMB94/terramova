@@ -119,3 +119,7 @@ El sistema describe eventos publicados: no predice terremotos, no es un sistema 
 - `v1.0.0`: despliegue verificado, accesibilidad y documentación de portafolio.
 
 Las versiones son hitos de producto, no promesas de calendario. Los comandos de "Desarrollo local" se actualizan solo cuando se han comprobado.
+
+## Licencia
+
+Código bajo licencia [MIT](LICENSE). Los datos (USGS), las imágenes (NASA Blue Marble), las fronteras (Natural Earth), CesiumJS y las tipografías conservan sus propias licencias; ver «Fuentes y créditos» en la aplicación.

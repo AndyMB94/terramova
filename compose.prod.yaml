@@ -2,6 +2,8 @@
 # Reglas de red (docs/DEPLOYMENT.md), comprobadas en CI por infra/scripts/check_compose_ports.py:
 #   - db y redis NO publican ningún puerto (sin sección ports).
 #   - backend publica solo 127.0.0.1:8100; Nginx del host es el único punto público.
+# Imagen etiquetada con el commit (TERRAMOVA_IMAGE_TAG): la anterior se conserva para
+# volver atrás sin reconstruir (docs/DEPLOYMENT.md, "Backups y rollback").
 # Los límites de memoria son provisionales hasta inventariar el VPS (compartido con
 # Vacantia y el portafolio): TerraMova no debe poder quitarles recursos.
 
@@ -27,7 +29,7 @@ services:
     mem_limit: 192m
 
   backend:
-    image: terramova/backend:local
+    image: terramova/backend:${TERRAMOVA_IMAGE_TAG:-local}
     <<: *app-hardening
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.prod
@@ -46,7 +48,7 @@ services:
 
   scheduler:
     # Misma imagen y configuración que el backend; sin puertos ni comprobación HTTP.
-    image: terramova/backend:local
+    image: terramova/backend:${TERRAMOVA_IMAGE_TAG:-local}
     pull_policy: never
     <<: *app-hardening
     command: ["supercronic", "-json", "deploy/crontab"]
