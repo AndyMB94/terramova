@@ -102,15 +102,15 @@ Aceptación: pruebas de AI_SECURITY.md satisfechas; múltiples visitas no elevan
 Depende de Fase 4 como mínimo. Fase 5 solo si se publica con IA.
 
 - [ ] Inventariar recursos y servicios existentes sin exponer secretos.
-- [ ] Dockerfiles reproducibles, build frontend y configuración Nginx.
-- [ ] `compose.prod.yaml` según "Reglas de red": DB/Redis sin `ports:`, backend en `127.0.0.1:8100`, Redis con contraseña y `maxmemory`.
+- [x] Dockerfiles reproducibles, build frontend y configuración Nginx. (Probados en local con un Nginx real, D114–D115; falta instalarlos en el VPS.)
+- [x] `compose.prod.yaml` según "Reglas de red": DB/Redis sin `ports:`, backend en `127.0.0.1:8100`, Redis con contraseña y `maxmemory`. (Verificado con `ss` en local y vigilado en CI, D116.)
 - [ ] DNS `terramova` en Porkbun, sitio Nginx independiente, Certbot solo para el subdominio y settings de producción.
 - [ ] Verificar con `ss -tlnp` y un escaneo externo que solo 22/80/443 responden, y que Vacantia y el portafolio siguen intactos.
-- [ ] Contenedor scheduler (supercronic) con sincronización escalonada, exclusión mutua y comandos operativos.
-- [ ] Microcaché Nginx, compresión gzip/brotli y CDN opcional; medir tasa de aciertos.
-- [ ] Logs JSON con request ID y monitoreo de errores (por ejemplo, Sentry) sin datos personales.
+- [x] Contenedor scheduler (supercronic) con sincronización escalonada, exclusión mutua y comandos operativos. (En local hizo solo las sincronizaciones de semana y día a su hora.)
+- [ ] Microcaché Nginx, compresión gzip/brotli y CDN opcional; medir tasa de aciertos. (Configurado y probado en local: MISS→HIT y mapa de 532 a 135 KB con gzip; la tasa de aciertos se mide en producción. Sin CDN.)
+- [ ] Logs JSON con request ID y monitoreo de errores (por ejemplo, Sentry) sin datos personales. (Logs JSON con request ID hechos, D117; servicio externo de errores pendiente de decisión.)
 - [ ] Backup/restore probado y plan de rollback de código y migraciones.
-- [ ] Tests, build y `manage.py check --deploy` resueltos o excepciones justificadas.
+- [x] Tests, build y `manage.py check --deploy` resueltos o excepciones justificadas. (Sin avisos salvo W005/W021 justificados, D113.)
 - [ ] Prueba de carga con objetivos y recursos documentados; ajustar límites.
 - [ ] Revisar licencias, créditos, privacidad, dependencias y seguridad.
 - [ ] Preparar despliegue revisable y obtener indicación explícita antes de modificar el VPS.
@@ -154,3 +154,4 @@ Aceptación: demo HTTPS reproducible, acceso admin protegido, DB/Redis no públi
 | 2026-10-22 | Fase 4 · PR 2 · CI | PR #16 fusionado en `main` (merge `893688b`). Workflows `contract`, `frontend`, `repo` y `e2e` en verde en el PR (`3acc593`) y en `main` (`893688b`); la prueba de créditos del globo que falló una vez en local pasó en ambos. **PR 2 de la Fase 4 completo** | Sigue el PR 3 (reproducción, URL completa y favoritos) |
 | 2026-10-22 | Fase 4 · PR 3 (rama local `feat/playback-favorites`, sin commit) | Reproducción temporal en el globo (30 s por ventana a ×1, ×2/×4, cursor accesible, ondas de lo recién aparecido, sin giro), `view=2d` en la URL y favoritos locales con pestañas. Vitest 92 (15 nuevos), E2E 43 superadas y 20 omitidas por diseño, 5 mutaciones detectadas. Hallazgos corregidos: el simulacro E2E del mapa no atrapaba la petición sin filtros y llegaba al backend real (D109); nombre accesible de los favoritos sin separación; comprobación de almacenamiento en cada render. En el PC del propietario: reproducción en Alta a 24,9 fps (×1) y 25,1 (×4); favoritos y `?view=2d` en incógnito comprobados. Decisiones D107–D111 | CI pendiente; luego cierre de la Fase 4 |
 | 2026-10-22 | Fase 4 · PR 3 · CI y cierre | PR #17 fusionado en `main` (merge `f2debed`). Workflows `frontend`, `repo` y `e2e` en verde en el PR (`0b02459`) y en `main` (`f2debed`). Criterio de aceptación cumplido: las estadísticas no dependen de la lista ni del límite del mapa (D102), una URL con filtros, evento y vista funciona en otro navegador (E2E con contexto nuevo y prueba en incógnito del propietario, D107/D111) y la reproducción respeta el movimiento reducido (E2E, D108). Siete capturas de Analítica, reproducción y favoritos adjuntas al PR de cierre, no versionadas (como D98). **Fase 4 completa (v0.2.0)** | Fase 5 (IA opcional y presupuesto): plan pendiente de aprobación |
+| 2026-10-23 | Fase 6 · PR 1 (rama local `feat/production-artifacts`, sin commit) | Fase 5 aplazada (D112). Artefactos de producción: imagen con Gunicorn y supercronic verificado por SHA-256, settings de producción (`check --deploy` limpio), `compose.prod.yaml` con Reglas de red y guarda en CI, logs JSON con request ID y sitio de Nginx. Stack de producción levantado en local con otro nombre de proyecto: solo `127.0.0.1` en escucha, HTTPS forzado salvo salud, host ajeno 400, Redis exige contraseña, scheduler sincronizó solo a su hora. Nginx real en local: microcaché, gzip, límite por IP (429), admin tras contraseña y CSP probada en navegador; esta destapó dos bloqueos (WebAssembly de Cesium y prueba de zod) corregidos sin permitir `eval` (D114). Decisiones D112–D117 | CI pendiente; sigue el PR 2 (backups, prueba de carga, revisión de licencias) y el inventario del VPS |

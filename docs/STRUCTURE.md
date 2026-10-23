@@ -308,3 +308,9 @@ Solo esto; el resto llega con su fase.
 - `frontend/src/features/playback/`: `timeline.ts` (avance del cursor, filtro por hora, margen de ondas y formato UTC; puro y probado), `usePlayback.ts` (estado y avance a 10 pasos/s; se cierra sola si cambia la ventana) y `PlaybackBar.tsx`.
 - `frontend/src/features/favorites/`: `storage.ts` (formato versionado con zod, límite y alta; puro y probado), `useFavorites.ts` (`useSyncExternalStore`, sincronizado entre pestañas), `FavoriteButton.tsx` y `FavoritesList.tsx`.
 - `features/explore/`: `view` en el esquema de la URL, `list/ListTabs.tsx` y `list/tabs.ts`; el globo recibe el modo, la reproducción y expone `data-points`/`data-playback` para las pruebas. `shared/lib/storage.ts`: `tryWritePreference` e `isStorageAvailable`.
+
+### Resultado real de la Fase 6 · PR 1 (artefactos de producción)
+
+- Raíz: `compose.prod.yaml` (se usa junto a `compose.yaml`), `.env.prod.example` (plantilla sin secretos; el `.gitignore` la exceptúa) y objetivo `make check-ports`.
+- `backend/`: `config/settings/prod.py`, `gunicorn.conf.py`, `deploy/crontab` (scheduler), `core/logging.py` (request ID y formato JSON) y la imagen con Gunicorn, supercronic y estáticos del admin.
+- `infra/nginx/terramova.andymallcco.dev.conf` y `infra/scripts/check_compose_ports.py`. `frontend/src/shared/lib/zod-config.ts` (importado el primero en `main.tsx`).
